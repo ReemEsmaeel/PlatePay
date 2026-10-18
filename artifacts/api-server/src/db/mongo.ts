@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { logger } from "../lib/logger";
+import { getMongoSocks5Options } from "./mongoSocks5";
 import {
   AuditLogModel, MerchantModel, PaymentRequestModel, SpendingLimitModel,
   TransactionModel, UserModel, VehicleModel, WalletEntryModel, WalletModel,
@@ -21,6 +22,7 @@ export async function connectMongoDB() {
   connectionPromise ??= mongoose.connect(uri, {
     serverSelectionTimeoutMS: 15_000,
     autoIndex: false,
+    ...getMongoSocks5Options(),
   });
 
   try {
