@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "PlatePay"
+description = "PlatePay is a bilingual vehicle-based payment demo for drivers, merchants, and administrators in Kuwait. It connects registered plate recognition, geolocation checks, explicit driver approval, test-mode wallet top-ups, and transaction records."
+version = "1.0.0"
+id = "artifacts/platepay"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19380
+
+[services.development]
+run = "pnpm --filter @workspace/platepay run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/platepay", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/platepay/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19380"
+BASE_PATH = "/"

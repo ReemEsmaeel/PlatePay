@@ -1,0 +1,520 @@
+# PlatePay — Project Requirements and Implementation Brief
+
+## 1. Project Overview
+
+Build **PlatePay**, a modern plate-based payment platform that allows drivers to pay for services such as drive-thru orders, fuel, and parking without manually entering payment details at the point of service.
+
+The system identifies a registered vehicle through its license plate, allows a merchant to create a payment request, and sends that request to the vehicle's registered driver for approval. Once approved, the payment is deducted from the driver's PlatePay wallet and recorded in both the driver's and merchant's transaction histories.
+
+The primary goal is to demonstrate a complete, functional payment workflow through a polished, realistic web application.
+
+**Core principle:** A license plate is an identification method, not a payment authorization method. Recognizing a plate must never automatically charge a driver. Every transaction requires explicit approval from the driver.
+
+Initially, focus on a reliable demonstration using uploaded vehicle photographs rather than a live camera.
+
+## 2. User Roles
+
+The platform must support three distinct user roles, each with its own interface and permissions.
+
+### A. Driver
+
+The driver uses a personal account to register vehicles, manage a wallet, receive payment requests, control spending limits, and review transactions.
+
+### B. Merchant
+
+The merchant represents a business that provides services such as drive-thru restaurants, gas stations, and parking facilities. Merchants can identify vehicles, initiate payment requests, and monitor their own transactions.
+
+### C. System Administrator
+
+The administrator manages the overall platform, including users, merchants, transactions, and platform activity. The administrator dashboard must be separate from the merchant dashboard.
+
+Enforce role-based access so each role can access only the pages and information appropriate to it.
+
+## 3. Driver Interface
+
+Create a responsive, user-friendly driver dashboard with the following pages and features.
+
+### 3.1 Driver Dashboard
+
+Display a clear overview of the driver's account, including:
+
+- Current wallet balance in Kuwaiti dinars (KWD).
+- Registered vehicles and their license plates.
+- Pending payment requests requiring action.
+- Recent transactions.
+- Quick actions for topping up the wallet, managing vehicles, and viewing transaction history.
+- Spending-limit status.
+
+Make pending payment requests visually prominent without making the dashboard feel cluttered.
+
+### 3.2 Vehicle and Plate Registration
+
+Allow drivers to register one or more vehicles.
+
+Each vehicle should include:
+
+- License plate number.
+- Optional vehicle description or nickname.
+- Registration status.
+- Associated driver account.
+
+Normalize plate numbers consistently before matching them, accounting for differences such as spaces, letter case, and formatting where appropriate. Preserve the original displayed format when useful.
+
+Validate the plate number and prevent accidental duplicate registrations. A plate must not be associated with multiple active driver accounts unless a deliberate, secure vehicle-sharing feature is implemented.
+
+Drivers must be able to view and manage their registered vehicles. Any plate changes should be reflected in subsequent recognition and payment matching.
+
+For the initial demonstration, prioritize Kuwaiti license plates and design the registration and recognition workflow to accommodate their formats.
+
+### 3.3 Wallet and Top-Ups
+
+Create a wallet page showing:
+
+- Available balance.
+- Wallet transaction history.
+- Top-up amount selection.
+- A clear confirmation of successful or unsuccessful top-ups.
+
+Support wallet top-ups through a payment checkout in test mode. Only credit the wallet after the backend has verified that the top-up was successfully completed.
+
+Clearly distinguish wallet top-ups from merchant payments.
+
+Use KWD throughout the application and format amounts consistently, for example, 1.500 KWD.
+
+Do not allow drivers to spend more than their available balance. Wallet balances must be calculated and updated securely on the backend rather than trusted from frontend values.
+
+### 3.4 Incoming Payment Requests
+
+When a merchant submits a payment request for a recognized, registered vehicle, make that request visible to the corresponding driver's account.
+
+Each request must display:
+
+- Merchant or business name.
+- Merchant location, if available.
+- Service category, such as drive-thru, fuel, or parking.
+- Payment amount in KWD.
+- Vehicle plate associated with the request.
+- Request creation time.
+- Expiration time or remaining validity, if implemented.
+- Approve and Reject actions.
+
+Example:
+
+**Payment request**
+
+- Merchant: Burger Drive
+- Vehicle plate: The driver's registered plate
+- Amount: 1.500 KWD
+- Action: Approve or Reject
+
+The driver must be able to understand exactly who is requesting the payment and how much will be deducted before approving it.
+
+Rejecting a request must not change the wallet balance.
+
+A request must not be processed twice. Once it has been approved, rejected, or expired, it must no longer be actionable.
+
+If the driver's account is not currently open, the pending request should remain available until the driver can access it or until the request expires. For the initial version, displaying requests inside the authenticated driver dashboard is sufficient; external push notifications are not required.
+
+### 3.5 Spending Limits
+
+Allow drivers to configure spending limits to provide additional control over their accounts.
+
+Include a simple daily spending limit and, if practical, a per-transaction limit.
+
+Display the configured limits and the amount spent against them.
+
+Enforce these limits on the backend when a payment is approved. A transaction that exceeds a limit must not be charged, even if the frontend attempts to submit it.
+
+Define how rejected, expired, and refunded transactions affect spending calculations, and apply the same rules consistently.
+
+### 3.6 Driver Transaction History
+
+Display a searchable or filterable history of the driver's wallet activity.
+
+Include:
+
+- Merchant payments.
+- Wallet top-ups.
+- Refunds or reversals, if supported.
+- Transaction date and time.
+- Merchant name.
+- Vehicle plate.
+- Amount.
+- Transaction status.
+
+Clearly distinguish completed payments from pending, rejected, failed, and refunded transactions.
+
+The driver must be able to inspect individual transaction details.
+
+## 4. Merchant Dashboard
+
+The merchant dashboard is the business-facing workspace. It must be designed for fast operation in environments where staff need to process vehicles and payments quickly.
+
+### 4.1 Merchant Overview
+
+Display:
+
+- Merchant name and account information.
+- Service category and registered location.
+- Total completed payments for the selected period.
+- Total transaction value in KWD.
+- Pending payment requests.
+- Recent transactions.
+- Quick access to initiate a new payment request.
+
+Merchants must only see their own payment requests and transactions.
+
+### 4.2 Initiate a Payment Request
+
+Create a dedicated page or workflow for identifying a vehicle and requesting payment.
+
+The process should be:
+
+1. The merchant starts a new payment request.
+2. The merchant uploads a photograph containing the vehicle's license plate.
+3. The system processes the image and attempts to recognize the plate.
+4. The recognized plate number is displayed for review.
+5. The merchant confirms or corrects the recognized number after checking the photograph.
+6. The system checks whether the plate belongs to a registered vehicle.
+7. The merchant selects the service category and enters the amount.
+8. The merchant reviews the details and submits the payment request.
+9. The system creates a pending request for the associated driver.
+10. The merchant sees the request status update as the driver responds.
+
+Support common image formats and provide clear validation messages for unsupported, missing, or unreadable images.
+
+### 4.3 License Plate Recognition
+
+Implement license plate recognition as part of the uploaded-image workflow.
+
+The system should:
+
+- Extract the likely plate number from the uploaded photograph.
+- Normalize the extracted number for matching.
+- Display the recognized number before the merchant submits the request.
+- Handle unreadable images and failed recognition attempts gracefully.
+- Allow manual correction or retry when recognition fails.
+- Clearly indicate when a plate cannot be matched to a registered vehicle.
+
+Do not silently select a different driver's account when recognition is uncertain.
+
+If the recognized plate is not registered, show an appropriate message and do not create a payable request for an unrelated account.
+
+The recognition process should support Kuwaiti license plates as the initial target. If the recognition service returns a confidence score, use it to guide the review process rather than treating every result as unquestionably correct.
+
+Use uploaded photographs for the initial demonstration. Do not make a live camera feed a requirement.
+
+### 4.4 Service and Amount Details
+
+Support at least these merchant service categories:
+
+- Drive-thru.
+- Gas station or fuel service.
+- Parking.
+- Other services.
+
+Allow the merchant to enter the payment amount and an optional order reference or short description.
+
+Validate that the amount is positive, uses the correct currency, and follows an appropriate precision for KWD.
+
+The merchant must review the plate, amount, and service details before submitting a request.
+
+### 4.5 Merchant Payment Status
+
+Display a clear status for every payment request:
+
+- Pending driver approval.
+- Approved and paid.
+- Rejected by driver.
+- Expired.
+- Failed.
+
+Only show a payment as completed after the backend has successfully processed the wallet deduction.
+
+If the driver rejects the request, the merchant must see the rejection status without receiving unnecessary personal information about the driver.
+
+### 4.6 Merchant Transaction History
+
+Provide a transaction history containing:
+
+- Transaction date and time.
+- Plate number.
+- Service category.
+- Payment amount.
+- Request status.
+- Order reference, if provided.
+
+Include basic date and status filters where practical.
+
+Merchants must not be able to access drivers' wallet balances, top-up history, or unrelated transactions.
+
+## 5. System Administrator Dashboard
+
+Build a separate administrator interface for platform-wide management.
+
+Include the following sections:
+
+### Overview
+
+- Total registered drivers.
+- Total registered merchants.
+- Total registered vehicles.
+- Total completed transactions.
+- Total transaction value.
+- Number of pending payment requests.
+
+### Driver Management
+
+- View driver accounts.
+- View their registered plates.
+- Review account status.
+- Activate or suspend accounts where authorized.
+
+### Merchant Management
+
+- View merchant profiles and service categories.
+- View registered business locations.
+- Review merchant verification status.
+- Activate or suspend merchant accounts where authorized.
+
+### Transaction Monitoring
+
+- View platform-wide payment requests and transactions.
+- Filter by date, merchant, driver, and status.
+- Inspect transaction details and status changes.
+- Identify failed or suspicious activity.
+
+### Administrative Security
+
+Restrict administrator functions to authorized administrator accounts. Do not allow users to obtain administrator access by changing a frontend role or modifying request parameters.
+
+Administrative actions that affect accounts or transactions should be recorded in an audit log.
+
+The administrator interface is intended for platform management, not for initiating ordinary merchant payments.
+
+## 6. Core Payment and Wallet Business Logic
+
+The following rules are essential to the application's correctness.
+
+### Payment Request Creation
+
+A merchant payment request must contain a unique identifier, merchant reference, registered vehicle or driver reference, amount, currency, service category, creation time, expiration time if applicable, and current status.
+
+Creating a request must not deduct money from the wallet.
+
+### Driver Approval
+
+When the driver approves a request, the backend must verify all of the following:
+
+- The authenticated user is the driver associated with the request.
+- The request is still pending and has not expired.
+- The request has not already been processed.
+- The amount and merchant information are valid.
+- The driver has sufficient wallet balance.
+- The applicable spending limits have not been exceeded.
+- The merchant and driver accounts are eligible to transact.
+
+If all checks pass, process the approval and wallet deduction as one atomic operation.
+
+If any check fails, do not deduct money. Return a clear status explaining why the payment could not be completed.
+
+### Duplicate Payment Prevention
+
+Prevent duplicate deductions caused by repeated clicks, retries, page refreshes, or simultaneous approval requests.
+
+Each payment request must be processed at most once. Use appropriate transaction-level safeguards and idempotency mechanisms.
+
+### Payment Status Consistency
+
+Keep the driver and merchant views synchronized with the authoritative transaction status stored by the backend.
+
+The merchant must not be able to mark a request as paid manually. The driver must not be able to approve another driver's request. The frontend must never determine the final wallet balance or transaction outcome.
+
+### Wallet Integrity
+
+Keep an auditable record of wallet credits and debits. Ensure that the displayed wallet balance agrees with the recorded wallet activity.
+
+A wallet must never become negative because of concurrent payment attempts or client-side manipulation.
+
+## 7. Authentication, Authorization, and Privacy
+
+Implement secure registration, login, logout, and session handling.
+
+Ensure that:
+
+- Protected pages require authentication.
+- Each user is assigned an appropriate role.
+- Backend authorization is enforced for every sensitive operation.
+- Drivers can only access their own vehicles, wallet, payment requests, and history.
+- Merchants can only access their own requests and transactions.
+- Administrative operations require administrator privileges.
+- Sensitive credentials and private keys are never exposed in frontend code.
+- Payment amounts, user IDs, plate ownership, and transaction statuses are validated on the backend.
+- Error messages do not expose private account information.
+
+Treat license plate numbers as personal or potentially sensitive data. Expose them only where needed for the relevant transaction and restrict access to photographs and recognition results.
+
+## 8. Main Website and Visual Design
+
+Create a professional, modern fintech identity for PlatePay.
+
+The interface should communicate speed, convenience, trust, and security. Avoid an overly playful or generic template appearance.
+
+### Visual Direction
+
+- Clean, modern fintech styling.
+- A consistent color palette with a dark navy foundation, white or light neutral surfaces, and a restrained teal or green accent.
+- Clear typography and strong visual hierarchy.
+- Consistent spacing, cards, buttons, forms, tables, and status indicators.
+- Subtle borders and shadows rather than excessive decoration.
+- Responsive layouts for desktop, tablet, and mobile.
+- Accessible color contrast and readable text.
+
+Use consistent styling across the public website, driver dashboard, merchant dashboard, and administrator dashboard while giving each interface an appropriate layout.
+
+### Public Landing Page
+
+Create a polished landing page that explains PlatePay's value proposition.
+
+Include:
+
+- Navigation with the PlatePay logo.
+- A clear hero section with a headline such as "Pay with your plate."
+- A short explanation of how the service works.
+- A prominent call to action for drivers to register.
+- A separate entry point for merchants.
+- A three-step explanation: Register your plate, approve the request, and pay.
+- Supported service categories.
+- A security section explaining that every payment requires driver approval.
+- A footer with relevant navigation and contact or help links.
+
+Avoid claiming that the system is already accepted by real merchants or connected to live payment networks.
+
+### Dashboard Usability
+
+Use role-specific navigation, meaningful empty states, clear loading indicators, form validation, confirmation dialogs for important actions, and helpful error messages.
+
+For example, if the driver has no registered plates, provide a direct action to add a vehicle. If the merchant has no pending requests, show an appropriate empty state.
+
+Make the most important action on each page obvious.
+
+## 9. Required Pages
+
+Implement the following pages or their equivalent in a consistent navigation structure.
+
+**Public and authentication**
+- Landing page.
+- Driver registration and login.
+- Merchant registration and login, with appropriate merchant account setup.
+- Password recovery.
+
+**Driver**
+- Driver dashboard.
+- Vehicle and plate management.
+- Wallet and top-up.
+- Pending payment requests.
+- Transaction history.
+- Spending-limit settings.
+- Account settings.
+
+**Merchant**
+- Merchant dashboard.
+- New payment request and image upload.
+- Plate recognition and confirmation.
+- Payment request details and status.
+- Transaction history.
+- Merchant profile and location settings.
+
+**Administrator**
+- Administrator overview.
+- Driver management.
+- Merchant management.
+- Transaction monitoring.
+- Audit log.
+
+Keep the implementation modular and avoid duplicating the same business logic across pages.
+
+## 10. Error Handling and Edge Cases
+
+Handle at least the following cases gracefully:
+
+- The uploaded image contains no readable plate.
+- The recognition result is ambiguous.
+- The recognized plate is not registered.
+- The merchant submits an invalid amount.
+- The driver rejects the payment.
+- The payment request expires.
+- The driver has insufficient wallet balance.
+- The transaction exceeds a spending limit.
+- The merchant or driver account is suspended.
+- The driver attempts to approve a request belonging to someone else.
+- The same request is approved twice.
+- The wallet top-up fails or is cancelled.
+- The network fails during approval.
+- A page refresh occurs while a request is pending.
+- Two payment attempts occur at nearly the same time.
+
+Do not show a success message until the backend confirms success. If the outcome of an operation is uncertain because of a network interruption, retrieve the authoritative transaction status instead of blindly repeating the deduction.
+
+## 11. Implementation Priorities
+
+Build the application in the following order.
+
+### Phase 1: Functional MVP
+
+Prioritize a complete end-to-end workflow:
+
+1. Driver registration and login.
+2. Vehicle and plate registration.
+3. Wallet display and test-mode top-up.
+4. Merchant registration and dashboard.
+5. Vehicle photo upload.
+6. License plate recognition and merchant confirmation.
+7. Registered plate matching.
+8. Payment request creation.
+9. Driver approval or rejection.
+10. Secure wallet deduction after approval.
+11. Updated payment status on both sides.
+12. Driver and merchant transaction histories.
+
+The first milestone is complete when a test transaction can be demonstrated from the merchant's uploaded photograph to the driver's approval, the wallet deduction, and the updated histories.
+
+### Phase 2: Controls and Reliability
+
+Add spending limits, request expiration, stronger validation, duplicate-payment protection, better transaction synchronization, and basic merchant location information.
+
+### Phase 3: Administration and Polish
+
+Complete the administrator dashboard, improve filtering and reporting, refine responsive behavior, and polish the overall interface.
+
+Do not sacrifice core payment correctness to implement decorative features or advanced analytics.
+
+## 12. Acceptance Criteria
+
+The project should be considered functionally complete for its initial demonstration when all of the following can be verified:
+
+1. A driver can create an account and register a vehicle plate.
+2. A driver can top up a wallet using a verified test-mode checkout.
+3. A merchant can upload a vehicle photograph and obtain a plate recognition result.
+4. The merchant can review the plate and submit a valid payment request.
+5. A registered driver can see the correct request in their dashboard.
+6. The driver can approve or reject the request.
+7. Approval results in exactly one wallet deduction when all validation checks pass.
+8. Rejection does not deduct money.
+9. Insufficient balance and exceeded spending limits prevent payment.
+10. Both driver and merchant see consistent transaction statuses.
+11. Both parties can view the transaction in their respective histories.
+12. Unauthorized users cannot access another user's data or perform actions outside their role.
+13. Refreshing pages or repeating requests does not create duplicate payments.
+14. The application handles recognition failures and other expected errors without crashing.
+15. The main workflows function correctly on desktop and mobile layouts.
+
+## Final Instruction
+
+Use the project's existing skill file and established development conventions. Inspect the current project before making changes, reuse working components where appropriate, and implement the requirements in a structured, incremental manner.
+
+Prioritize a working, secure, end-to-end MVP over a collection of disconnected screens. Connect the frontend to real application logic and persistent data wherever required. Do not substitute static mockups for essential functionality, and do not claim that an integration works unless it has actually been configured and tested.
+
+Where external services require credentials or account setup, clearly identify the required configuration and provide a safe demonstration fallback. Keep all payment processing in test mode for this project.
+
+Start by assessing the existing codebase, identifying what is already implemented, and then proceeding with the highest-priority missing functionality.
