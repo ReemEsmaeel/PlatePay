@@ -10,6 +10,7 @@ import {
   UpdateVehicleParams,
 } from "@workspace/api-zod";
 import {
+  AuditLogModel,
   MerchantModel,
   SpendingLimitModel,
   UserModel,
@@ -24,6 +25,7 @@ import {
 } from "../middlewares/auth";
 import { normalizePlate } from "../lib/plate";
 import { validate } from "../lib/validation";
+import { isTrustedAdminEmail } from "../lib/adminPolicy";
 
 const router: IRouter = Router();
 
@@ -88,14 +90,15 @@ router.post("/auth/profile", requireClerkSession, async (req, res) => {
     }
 
     const identity = await clerkClient.users.getUser(clerkUserId);
-    const primaryEmail =
-      identity.emailAddresses.find(
-        (item) => item.id === identity.primaryEmailAddressId,
-      )?.emailAddress ?? identity.emailAddresses[0]?.emailAddress;
-    if (!primaryEmail) {
+    const primaryEmail = identity.emailAddresses.find(
+      (item) => item.id === identity.primaryEmailAddressId,
+    );
+    if (!primaryEmail || primaryEmail.verification?.status !== "verified") {
       res.status(400).json({ error: "Add a verified email to your Clerk account first." });
       return;
     }
+    const initialAdmin = isTrustedAdminEmail(primaryEmail);
+    const role = initialAdmin ? "admin" : body.role;
 
     const session = await mongoose.startSession();
     let created:
@@ -107,16 +110,27 @@ router.post("/auth/profile", requireClerkSession, async (req, res) => {
           [
             {
               clerkUserId,
-              email: primaryEmail,
+              email: primaryEmail.emailAddress,
               displayName: body.displayName.trim(),
-              role: body.role,
+              role,
               status: "active",
+              initialAdminGrantedAt: initialAdmin ? new Date() : null,
             },
           ],
           { session },
         );
         created = user;
-        if (body.role === "driver") {
+        if (initialAdmin) {
+          await AuditLogModel.create([{
+            actorId: user._id,
+            actorName: user.displayName,
+            action: "admin.initial_access_granted",
+            targetType: "account",
+            targetId: user._id.toString(),
+            details: { source: "owner_configured_verified_email" },
+          }], { session });
+        }
+        if (role === "driver") {
           await WalletModel.updateOne(
             { userId: user._id },
             { $setOnInsert: { userId: user._id, balanceFils: 0, currency: "KWD" } },

@@ -11,7 +11,7 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - Required secret: `MONGODB_URI` — MongoDB Atlas URI for PlatePay application data
 - Clerk secrets are provisioned by Replit-managed Clerk.
-- Stripe test-mode integration must be connected before wallet top-ups can be enabled.
+- Stripe setup is paused by the user. Keep PlatePay MongoDB-only; do not add a PostgreSQL Stripe synchronization store. Test wallet top-ups remain unavailable.
 
 ## Stack
 
@@ -35,6 +35,7 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 
 - MongoDB is the source of truth for PlatePay accounts, vehicles, merchant profiles, payment requests, wallets, and audit records; the workspace's PostgreSQL scaffold is not used for PlatePay business data.
 - Clerk owns sign-in and sessions; the MongoDB profile stores the PlatePay role. Admin privileges must never be self-selected at signup.
+- Initial admin access is designated through `PLATEPAY_ADMIN_EMAIL`, granted only to its verified primary-email owner, and recorded once so restarts cannot restore revoked privileges.
 - Store KWD amounts as integer fils (1 KWD = 1,000 fils) to avoid floating-point rounding.
 - Plate recognition identifies a vehicle only. A driver must explicitly approve each merchant request before any wallet debit.
 - Plate OCR uses the user-selected Tesseract.js in the browser on a cropped image or still camera capture; do not persist the source photo.

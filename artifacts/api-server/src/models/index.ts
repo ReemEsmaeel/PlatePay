@@ -10,6 +10,7 @@ const userSchema = new Schema(
     displayName: { type: String, required: true, trim: true, maxlength: 100 },
     role: { type: String, enum: ["driver", "merchant", "admin"], required: true },
     status: { type: String, enum: accountStatuses, default: "active", required: true },
+    initialAdminGrantedAt: { type: Date, default: null },
   },
   { timestamps: true, versionKey: false },
 );
