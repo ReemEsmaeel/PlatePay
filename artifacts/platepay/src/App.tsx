@@ -89,11 +89,11 @@ const appearance = {
   elements: {
     rootBox: 'w-full flex justify-center', cardBox: 'bg-white rounded-2xl w-[440px] max-w-full overflow-hidden',
     card: '!shadow-none !border-0 !bg-transparent !rounded-none', footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
-    headerTitle: 'text-[#102b3a] font-bold', headerSubtitle: 'text-[#60727d]', socialButtonsBlockButtonText: 'text-[#102b3a] font-semibold',
+    headerTitle: 'text-[#102b3a] font-bold', headerSubtitle: 'text-[#60727d]', socialButtonsBlockButtonText: { color: '#102b3a', fontWeight: 600 },
     formFieldLabel: 'text-[#294452] font-semibold', footerActionLink: 'text-[#078968] font-bold', footerActionText: 'text-[#60727d]',
     dividerText: 'text-[#60727d]', identityPreviewEditButton: 'text-[#078968]', formFieldSuccessText: 'text-[#087456]',
-    alertText: 'text-[#a52f2a]', logoBox: 'rounded-xl', logoImage: 'rounded-xl', socialButtonsBlockButton: 'border-[#dce5ec] rounded-lg',
-    formButtonPrimary: 'bg-[#078968] hover:bg-[#067456] rounded-lg', formFieldInput: 'border-[#cbd7e0] rounded-lg',
+    alertText: 'text-[#a52f2a]', logoBox: 'rounded-xl', logoImage: 'rounded-xl', socialButtonsBlockButton: { borderColor: '#dce5ec', color: '#102b3a', backgroundColor: '#ffffff', borderRadius: '0.5rem' },
+    formButtonPrimary: { backgroundColor: '#078968', color: '#ffffff', borderRadius: '0.5rem' }, formFieldInput: 'border-[#cbd7e0] rounded-lg',
     footerAction: 'border-t border-[#edf1f4]', dividerLine: 'bg-[#e4eaef]', alert: 'rounded-lg', otpCodeFieldInput: 'rounded-lg',
     formFieldRow: 'gap-2', main: 'gap-4',
   },
@@ -160,7 +160,7 @@ function Field({ label, children, testId }: { label: string; children: ReactNode
 const driverLinks = [
   ['/driver',LayoutDashboard,'Overview'],['/driver/vehicles',CarFront,'Vehicles'],['/driver/wallet',WalletCards,'Wallet'],['/driver/requests',Bell,'Pending requests'],['/driver/limits',SlidersHorizontal,'Spending limits'],['/driver/transactions',History,'Transactions & receipts'],
 ] as const;
-const merchantLinks = [['/merchant',LayoutDashboard,'Overview'],['/merchant/request',ScanLine,'New request'],['/merchant/history',FileClock,'Request history'],['/merchant/profile',Store,'Business profile']] as const;
+const merchantLinks = [['/merchant',LayoutDashboard,'Overview'],['/merchant/request',ScanLine,'New request'],['/merchant/history',FileClock,'Request history'],['/merchant/transactions',ReceiptText,'Transactions'],['/merchant/profile',Store,'Business profile']] as const;
 const adminLinks = [['/admin',LayoutDashboard,'Overview'],['/admin/accounts',UserRound,'Accounts'],['/admin/merchants',Store,'Merchant verification'],['/admin/transactions',CreditCard,'Transactions'],['/admin/audit',FileClock,'Audit log']] as const;
 
 function AppShell({ children, profile }: { children: ReactNode; profile: UserProfile }) {
@@ -218,10 +218,10 @@ function PortalPage({ profile, section }: { profile: UserProfile; section: strin
   const titleFor = section==='vehicles'?'Vehicles':section==='wallet'?'Wallet':section==='requests'?'Pending requests':section==='limits'?'Spending limits':section==='transactions'?'Transactions & receipts':section==='new-request'?'New payment request':section==='history'?'Request history':section==='profile'?'Business profile':section==='accounts'?'Accounts':section==='merchants'?'Merchant verification':section==='admin-transactions'?'Platform transactions':section==='audit'?'Audit log':'Overview';
 
   const vehicleQ = useListVehicles({query:{queryKey:getListVehiclesQueryKey(),enabled:driver}});
-  const walletQ = useGetWallet({query:{queryKey:getGetWalletQueryKey(),enabled:driver}});
-  const requestQ = useListPaymentRequests(undefined,{query:{queryKey:getListPaymentRequestsQueryKey(),enabled:driver||merchant}});
+  const walletQ = useGetWallet({query:{queryKey:getGetWalletQueryKey(),enabled:driver,refetchInterval:5000,refetchOnWindowFocus:true}});
+  const requestQ = useListPaymentRequests(undefined,{query:{queryKey:getListPaymentRequestsQueryKey(),enabled:driver||merchant,refetchInterval:5000}});
   const limitQ = useGetSpendingLimits({query:{queryKey:getGetSpendingLimitsQueryKey(),enabled:driver}});
-  const transactionQ = useListTransactions(undefined,{query:{queryKey:getListTransactionsQueryKey(),enabled:driver}});
+  const transactionQ = useListTransactions(undefined,{query:{queryKey:getListTransactionsQueryKey(),enabled:driver||merchant,refetchOnWindowFocus:true}});
   const merchantProfileQ = useGetMerchantProfile({query:{queryKey:getGetMerchantProfileQueryKey(),enabled:merchant}});
   const merchantDashQ = useGetMerchantDashboard({query:{queryKey:getGetMerchantDashboardQueryKey(),enabled:merchant}});
   const servicesQ = useListServices(undefined,{query:{queryKey:getListServicesQueryKey(),enabled:merchant}});
@@ -255,11 +255,17 @@ function PortalPage({ profile, section }: { profile: UserProfile; section: strin
   const [scanZoom,setScanZoom] = useState(1);
   const [ocrStatus,setOcrStatus] = useState('');
   const [cameraOn,setCameraOn] = useState(false);
+  const [locationPending,setLocationPending] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const cameraStream = useRef<MediaStream|null>(null);
   const requestDetailQ = useGetPaymentRequest(requestDetailId,{query:{queryKey:getGetPaymentRequestQueryKey(requestDetailId),enabled:!!requestDetailId}});
   const receiptQ = useGetTransactionReceipt(receiptId,{query:{queryKey:getGetTransactionReceiptQueryKey(receiptId),enabled:!!receiptId}});
   useEffect(()=>()=>{cameraStream.current?.getTracks().forEach(t=>t.stop())},[]);
+  useEffect(()=>{
+    if(cameraOn && videoRef.current && cameraStream.current) {
+      videoRef.current.srcObject = cameraStream.current;
+    }
+  },[cameraOn]);
   useEffect(()=>{ if(limitQ.data){setDailyCap((limitQ.data.dailyLimitFils/1000).toFixed(3));setTransactionCap((limitQ.data.perTransactionLimitFils/1000).toFixed(3));}},[limitQ.data?.dailyLimitFils,limitQ.data?.perTransactionLimitFils]);
   const categoryOptions: ServiceCategory[] = ['drive_thru','fuel','parking','car_wash','other'];
   const retry = ()=>{[vehicleQ,walletQ,requestQ,limitQ,transactionQ,merchantProfileQ,merchantDashQ,servicesQ,adminOverviewQ,accountsQ,merchantsQ,adminTransactionsQ,auditQ].forEach(q=>q.refetch())};
@@ -274,16 +280,31 @@ function PortalPage({ profile, section }: { profile: UserProfile; section: strin
       const sx=(image.width-cropWidth)/2,sy=(image.height-cropHeight)/2;
       canvas.width=cropWidth;canvas.height=cropHeight;ctx.drawImage(image,sx,sy,cropWidth,cropHeight,0,0,cropWidth,cropHeight);
       const { createWorker } = await import('tesseract.js');
-      const worker=await createWorker('eng'); const result=await worker.recognize(canvas);await worker.terminate();URL.revokeObjectURL(url);
-      const candidate=result.data.text.toUpperCase().replace(/[^A-Z0-9\u0600-\u06FF -]/g,'').trim();
+      const worker=await createWorker(['eng','ara']);
+      let recognized = '';
+      try { recognized = (await worker.recognize(canvas)).data.text; }
+      finally { await worker.terminate(); URL.revokeObjectURL(url); }
+      const candidate=recognized.toUpperCase().split(/\r?\n/).map((line:string)=>line.replace(/KUWAIT|الكويت/g,'').replace(/[^A-Z0-9\u0600-\u06FF -]/g,'').trim()).filter((line:string)=>/[0-9٠-٩۰-۹]/.test(line)).sort((a:string,b:string)=>b.length-a.length)[0] ?? '';
       setScanPlate(candidate);setOcrStatus(candidate?'Plate text found. Review and correct it before submitting.':'No clear plate text found. Enter the plate manually.');
     } catch { setOcrStatus('Could not read the image. Enter the plate manually.'); }
   };
   const onImage = (file?:File) => { if(!file)return; setScanFile(file);setScanImage(URL.createObjectURL(file));setOcrStatus('Photo ready. Adjust crop, then read the plate.'); };
-  const startCamera = async () => { try{cameraStream.current=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});if(videoRef.current)videoRef.current.srcObject=cameraStream.current;setCameraOn(true);}catch{setOcrStatus('Camera access is unavailable. Upload a photo instead.');} };
-  const captureStill = () => { const video=videoRef.current;if(!video)return;const c=document.createElement('canvas');c.width=video.videoWidth;c.height=video.videoHeight;c.getContext('2d')?.drawImage(video,0,0);c.toBlob(blob=>{if(blob)onImage(new File([blob],'plate-capture.jpg',{type:'image/jpeg'}));},'image/jpeg');cameraStream.current?.getTracks().forEach(t=>t.stop());cameraStream.current=null;setCameraOn(false); };
+  const startCamera = async () => { try{cameraStream.current?.getTracks().forEach(t=>t.stop());cameraStream.current=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});setCameraOn(true);}catch{setOcrStatus('Camera access is unavailable. Upload a photo instead.');} };
+  const captureStill = () => { const video=videoRef.current;if(!video?.videoWidth||!video.videoHeight){setOcrStatus('Wait for the camera image before capturing.');return;}const c=document.createElement('canvas');c.width=video.videoWidth;c.height=video.videoHeight;c.getContext('2d')?.drawImage(video,0,0);c.toBlob(blob=>{if(blob)onImage(new File([blob],'plate-capture.jpg',{type:'image/jpeg'}));},'image/jpeg');cameraStream.current?.getTracks().forEach(t=>t.stop());cameraStream.current=null;setCameraOn(false); };
   const submitRequest = (e:FormEvent<HTMLFormElement>) => {e.preventDefault();const form=e.currentTarget;const fd=new FormData(form);const amount=Number(fd.get('amount'));const plateText=String(fd.get('plate')||'').trim();if(!plateText||!Number.isFinite(amount)||amount<=0)return;createRequest.mutate({data:{plateNumber:plateText,amountFils:Math.round(amount*1000),serviceCategory:String(fd.get('category')) as ServiceCategory,description:String(fd.get('description')||'')||undefined,orderReference:String(fd.get('reference')||'')||undefined}},{onSuccess:()=>{invalid(qc,getListPaymentRequestsQueryKey(),getGetMerchantDashboardQueryKey());form.reset();setScanImage('');setScanFile(null);setScanPlate('');setLocation('/merchant/history');}});};
-  const approve = (req:PaymentRequest) => {if(!window.confirm(`Approve ${money(req.amountFils)} for ${req.merchantName}?`))return;approveRequest.mutate({requestId:req.id,data:{latitude:29.3759,longitude:47.9774,idempotencyKey:`pp-${req.id}-${Date.now()}`}},{onSuccess:()=>{invalid(qc,getListPaymentRequestsQueryKey(),getGetPaymentRequestQueryKey(req.id),getGetWalletQueryKey(),getListTransactionsQueryKey(),getGetSpendingLimitsQueryKey());setRequestDetailId('');}});};
+  const approve = (req:PaymentRequest) => {
+    if(locationPending||approveRequest.isPending)return;
+    if(!window.confirm(`Approve ${money(req.amountFils)} for ${req.merchantName}? Your current phone location will be checked.`))return;
+    if(!navigator.geolocation){window.alert('Location access is required to approve this payment.');return;}
+    setLocationPending(true);
+    navigator.geolocation.getCurrentPosition(position=>{
+      setLocationPending(false);
+      approveRequest.mutate({requestId:req.id,data:{latitude:position.coords.latitude,longitude:position.coords.longitude,idempotencyKey:`platepay-${req.id}`}},{onSuccess:()=>{invalid(qc,getListPaymentRequestsQueryKey(),getGetPaymentRequestQueryKey(req.id),getGetWalletQueryKey(),getListTransactionsQueryKey(),getGetSpendingLimitsQueryKey());setRequestDetailId('');}});
+    },()=>{
+      setLocationPending(false);
+      window.alert('Unable to verify your phone location. Allow location access and try again. No payment was processed.');
+    },{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+  };
   const reject = (req:PaymentRequest) => {if(!window.confirm(`Reject this request from ${req.merchantName}?`))return;rejectRequest.mutate({requestId:req.id,data:{reason:'Declined by driver'}},{onSuccess:()=>{invalid(qc,getListPaymentRequestsQueryKey(),getGetPaymentRequestQueryKey(req.id));setRequestDetailId('');}});};
   const saveVehicle = (e:FormEvent) => {e.preventDefault();if(editingVehicle){updateVehicle.mutate({vehicleId:editingVehicle.id,data:{plateNumber:plate.trim(),nickname:nickname||null}},{onSuccess:()=>{invalid(qc,getListVehiclesQueryKey());setEditingVehicle(null);setPlate('');setNickname('');}});}else{createVehicle.mutate({data:{plateNumber:plate.trim(),nickname:nickname||undefined}},{onSuccess:()=>{invalid(qc,getListVehiclesQueryKey());setPlate('');setNickname('');}});}};
   const setVehicleActive = (v:Vehicle) => {if(window.confirm(`Deactivate ${v.plateNumber}?`))deleteVehicle.mutate({vehicleId:v.id},{onSuccess:()=>invalid(qc,getListVehiclesQueryKey())});};
@@ -294,7 +315,8 @@ function PortalPage({ profile, section }: { profile: UserProfile; section: strin
   const accountToggle=(account:AdminAccount)=>updateAccountStatus.mutate({accountId:account.id,data:{status:account.status==='active'?'suspended':'active'}},{onSuccess:()=>invalid(qc,getListAdminAccountsQueryKey(),getGetAdminOverviewQueryKey())});
   const merchantToggle=(merchant:AdminMerchant)=>updateMerchantStatus.mutate({merchantId:merchant.id,data:{status:merchant.status==='active'?'suspended':'active'}},{onSuccess:()=>invalid(qc,getListAdminMerchantsQueryKey(),getGetAdminOverviewQueryKey())});
 
-  const heading=<PageHeading eyebrow={`${profile.role} portal · ${text(locale,'TEST MODE','وضع تجريبي')}`} title={text(locale,titleFor,arabicTitle[titleFor]||titleFor)} detail={text(locale,section==='requests'?'Review every request before any payment is approved.':section==='overview'?'Your PlatePay activity, at a glance.':'Manage your PlatePay account and records.',section==='requests'?'راجع كل طلب قبل اعتماد أي دفعة.':'إدارة نشاطك وسجلاتك في بليت باي.')} action={driver&&section==='overview'?<Link href="/driver/vehicles" className="btn btn-primary" data-testid="button-add-vehicle"><Plus size={16}/>{text(locale,'Add vehicle','إضافة مركبة')}</Link>:merchant&&section==='overview'?<Link href="/merchant/request" className="btn btn-primary" data-testid="button-new-request"><Plus size={16}/>{text(locale,'New request','طلب جديد')}</Link>:undefined}/>;
+  const paymentError = (approveRequest.error || rejectRequest.error) as {data?:{error?:string};message?:string}|null;
+  const heading=<><PageHeading eyebrow={`${profile.role} portal · ${text(locale,'TEST MODE','وضع تجريبي')}`} title={text(locale,titleFor,arabicTitle[titleFor]||titleFor)} detail={text(locale,section==='requests'?'Review every request before any payment is approved.':section==='overview'?'Your PlatePay activity, at a glance.':'Manage your PlatePay account and records.',section==='requests'?'راجع كل طلب قبل اعتماد أي دفعة.':'إدارة نشاطك وسجلاتك في بليت باي.')} action={driver&&section==='overview'?<Link href="/driver/vehicles" className="btn btn-primary" data-testid="button-add-vehicle"><Plus size={16}/>{text(locale,'Add vehicle','إضافة مركبة')}</Link>:merchant&&section==='overview'?<Link href="/merchant/request" className="btn btn-primary" data-testid="button-new-request"><Plus size={16}/>{text(locale,'New request','طلب جديد')}</Link>:undefined}/>{locationPending&&<p role="status" data-testid="status-location-check">{text(locale,'Checking your phone location…','جارٍ التحقق من موقع هاتفك…')}</p>}{paymentError&&<p className="form-error" role="alert" data-testid="error-payment-decision">{paymentError.data?.error || paymentError.message || 'Payment decision could not be completed.'}</p>}</>;
 
   if(driver&&section==='vehicles') return <main className="content">{heading}<section className="panel form-panel"><h2>{editingVehicle?text(locale,'Edit vehicle','تعديل المركبة'):text(locale,'Register a vehicle','تسجيل مركبة')}</h2><p>{text(locale,'A registered plate helps you identify requests. It never approves payment by itself.','تساعدك اللوحة المسجلة على التعرّف على الطلبات، ولا تعتمد الدفع بنفسها.')}</p><form className="inline-form" onSubmit={saveVehicle}><Field label={text(locale,'License plate','رقم اللوحة')}><input className="input plate-input" required minLength={2} maxLength={20} value={plate} onChange={e=>setPlate(e.target.value)} placeholder="7 · 8942" data-testid="input-vehicle-plate"/></Field><Field label={text(locale,'Nickname (optional)','اسم اختياري')}><input className="input" maxLength={60} value={nickname} onChange={e=>setNickname(e.target.value)} placeholder="Family car" data-testid="input-vehicle-nickname"/></Field><button className="btn btn-primary" disabled={createVehicle.isPending||updateVehicle.isPending} data-testid="button-save-vehicle">{editingVehicle?'Save changes':'Add plate'}<Plus size={15}/></button>{editingVehicle&&<button type="button" className="btn btn-quiet" onClick={()=>{setEditingVehicle(null);setPlate('');setNickname('')}} data-testid="button-cancel-edit">Cancel</button>}</form>{(createVehicle.isError||updateVehicle.isError)&&<p className="form-error">Could not save vehicle. Check the plate and try again.</p>}</section><section className="panel table-panel"><div className="panel-heading"><h2>Your vehicles</h2><span className="status status-active">{vehicleQ.data?.length??0} registered</span></div><EmptyRows loading={vehicleQ.isLoading} error={vehicleQ.isError} empty={!vehicleQ.data?.length} retry={()=>vehicleQ.refetch()}><div className="vehicle-grid">{vehicleQ.data?.map(v=><article className="vehicle-card" key={v.id} data-testid={`vehicle-card-${v.id}`}><div className="vehicle-card-top"><span className="vehicle-icon"><CarFront size={20}/></span><Status value={v.status}/></div><h3>{v.nickname||'My vehicle'}</h3><div className="plate"><span className="plate-country">KUWAIT<br/>الكويت</span>{v.plateNumber}</div><div className="vehicle-actions"><button className="btn btn-quiet" onClick={()=>beginEdit(v)} data-testid={`button-edit-vehicle-${v.id}`}>Edit</button><button className="btn btn-danger" onClick={()=>setVehicleActive(v)} data-testid={`button-deactivate-vehicle-${v.id}`}>Deactivate</button></div></article>)}</div></EmptyRows></section></main>;
 
@@ -304,7 +326,47 @@ function PortalPage({ profile, section }: { profile: UserProfile; section: strin
 
   if(driver&&section==='limits') return <main className="content">{heading}<div className="limits-layout"><section className="panel limit-card"><div className="eyebrow">SPENDING SAFEGUARD</div><h2>Set your boundaries.</h2><p>Limits are safeguards for your account. They do not approve any payment request.</p><form onSubmit={saveLimit}><Field label="Daily spending limit (KWD)"><input className="input" type="number" step=".001" min="1" max="10000" required value={dailyCap} onChange={e=>setDailyCap(e.target.value)} data-testid="input-daily-limit"/></Field><Field label="Per-transaction limit (KWD)"><input className="input" type="number" step=".001" min=".1" max="1000" required value={transactionCap} onChange={e=>setTransactionCap(e.target.value)} data-testid="input-transaction-limit"/></Field><button className="btn btn-primary" disabled={updateLimits.isPending} data-testid="button-save-limits">Save limits</button>{updateLimits.isError&&<p className="form-error">Could not update limits. Please retry.</p>}</form></section><section className="panel limit-summary"><div className="limit-summary-head"><span className="metric-icon green"><SlidersHorizontal size={17}/></span><span className="status status-active">ACTIVE</span></div><h2>Today’s activity</h2>{limitQ.isLoading?<div className="skeleton" style={{height:120}}/>:limitQ.isError?<QueryError retry={()=>limitQ.refetch()}/> :<><div className="limit-remain">{money(limitQ.data?.remainingTodayFils)}</div><span className="muted">remaining today</span><div className="limit-meter"><i style={{width:`${Math.min(100,((limitQ.data?.spentTodayFils??0)/(limitQ.data?.dailyLimitFils||1))*100)}%`}}/></div><div className="limit-summary-row"><span>Spent {money(limitQ.data?.spentTodayFils)}</span><span>Limit {money(limitQ.data?.dailyLimitFils)}</span></div><div className="limit-divider"/><div className="detail-pair"><span>Per transaction</span><b>{money(limitQ.data?.perTransactionLimitFils)}</b></div></>}</section></div></main>;
 
-  if(driver&&section==='transactions') return <main className="content">{heading}<section className="panel table-panel"><div className="panel-heading"><div><h2>Activity ledger</h2><span>Amounts in KWD · shown to three decimal places</span></div><button className="btn btn-quiet" onClick={()=>transactionQ.refetch()} data-testid="button-refresh-transactions"><Activity size={15}/>Refresh</button></div><EmptyRows loading={transactionQ.isLoading} error={transactionQ.isError} empty={!transactionQ.data?.length} retry={()=>transactionQ.refetch()}><div className="table-wrap"><table><thead><tr><th>Date</th><th>Merchant</th><th>Plate</th><th>Service</th><th>Amount</th><th>Status</th><th>Receipt</th></tr></thead><tbody>{transactionQ.data?.map(t=><tr key={t.id} data-testid={`transaction-row-${t.id}`}><td>{dateLabel(t.createdAt)}</td><td>{t.merchantName||'Wallet'}</td><td className="plate-cell">{t.plateNumber||'—'}</td><td>{categoryLabel(t.serviceCategory)}</td><td className="money-cell">{money(t.amountFils)}</td><td><Status value={t.status}/></td><td><button className="table-link" onClick={()=>setReceiptId(t.id)} data-testid={`button-receipt-${t.id}`}><ReceiptText size={14}/>Receipt</button></td></tr>)}</tbody></table></div></EmptyRows></section>{receiptId&&<div className="modal-backdrop" onClick={()=>setReceiptId('')}><div className="modal-card panel receipt-modal" onClick={e=>e.stopPropagation()}><button className="modal-close icon-button" onClick={()=>setReceiptId('')} aria-label="Close receipt"><X size={18}/></button><div className="receipt-mark"><ReceiptText size={22}/></div><div className="eyebrow">PLATEPAY RECEIPT</div>{receiptQ.isLoading?<div className="skeleton" style={{height:120}}/>:receiptQ.isError?<QueryError retry={()=>receiptQ.refetch()}/>:receiptQ.data&&<><h2>{money(receiptQ.data.transaction.amountFils)}</h2><div className="detail-pair"><span>Receipt</span><b>{receiptQ.data.receiptNumber}</b></div><div className="detail-pair"><span>Merchant</span><b>{receiptQ.data.transaction.merchantName||'Wallet'}</b></div><div className="detail-pair"><span>Location</span><b>{receiptQ.data.merchantLocation||'—'}</b></div><div className="detail-pair"><span>Date</span><b>{dateLabel(receiptQ.data.transaction.createdAt)}</b></div></>}</div></div>}</main>;
+  if((driver||merchant)&&section==='transactions') return (
+    <main className="content">
+      {heading}
+      <section className="panel table-panel">
+        <div className="panel-heading">
+          <div><h2>{text(locale,'Activity ledger','سجل العمليات')}</h2><span>{text(locale,'Amounts in KWD · three decimal places','المبالغ بالدينار الكويتي · ثلاث منازل عشرية')}</span></div>
+          <button className="btn btn-quiet" onClick={()=>transactionQ.refetch()} data-testid="button-refresh-transactions"><Activity size={15}/>{text(locale,'Refresh','تحديث')}</button>
+        </div>
+        <EmptyRows loading={transactionQ.isLoading} error={transactionQ.isError} empty={!transactionQ.data?.length} retry={()=>transactionQ.refetch()}>
+          <div className="table-wrap"><table>
+            <thead><tr>{[['Date','التاريخ'],['Merchant','التاجر'],['Plate','اللوحة'],['Service','الخدمة'],['Amount','المبلغ'],['Status','الحالة'],['Receipt','الإيصال']].map(([en,ar])=><th key={en}>{text(locale,en,ar)}</th>)}</tr></thead>
+            <tbody>{transactionQ.data?.map(t=>(
+              <tr key={t.id} data-testid={`transaction-row-${t.id}`}>
+                <td>{dateLabel(t.createdAt)}</td><td>{t.merchantName||text(locale,'Wallet','المحفظة')}</td>
+                <td className="plate-cell">{t.plateNumber||'—'}</td><td>{categoryLabel(t.serviceCategory)}</td>
+                <td className="money-cell">{money(t.amountFils)}</td><td><Status value={t.status}/></td>
+                <td><button className="table-link" onClick={()=>setReceiptId(t.id)} data-testid={`button-receipt-${t.id}`}><ReceiptText size={14}/>{text(locale,'Receipt','الإيصال')}</button></td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        </EmptyRows>
+      </section>
+      {receiptId&&(
+        <div className="modal-backdrop" onClick={()=>setReceiptId('')}>
+          <div className="modal-card panel receipt-modal" onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label={text(locale,'Transaction receipt','إيصال العملية')}>
+            <button className="modal-close icon-button" onClick={()=>setReceiptId('')} aria-label={text(locale,'Close receipt','إغلاق الإيصال')} data-testid="button-close-receipt"><X size={18}/></button>
+            <div className="receipt-mark"><ReceiptText size={22}/></div><div className="eyebrow">{text(locale,'PLATEPAY RECEIPT','إيصال بليت باي')}</div>
+            {receiptQ.isLoading?<div className="skeleton" style={{height:120}}/>:receiptQ.isError?<QueryError retry={()=>receiptQ.refetch()}/>:receiptQ.data&&(
+              <>
+                <h2>{money(receiptQ.data.transaction.amountFils)}</h2>
+                <div className="detail-pair"><span>{text(locale,'Receipt','الإيصال')}</span><b>{receiptQ.data.receiptNumber}</b></div>
+                <div className="detail-pair"><span>{text(locale,'Merchant','التاجر')}</span><b>{receiptQ.data.transaction.merchantName||text(locale,'Wallet','المحفظة')}</b></div>
+                <div className="detail-pair"><span>{text(locale,'Location','الموقع')}</span><b>{receiptQ.data.merchantLocation||'—'}</b></div>
+                <div className="detail-pair"><span>{text(locale,'Date','التاريخ')}</span><b>{dateLabel(receiptQ.data.transaction.createdAt)}</b></div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </main>
+  );
 
   if(merchant&&section==='new-request') return <main className="content">{heading}<div className="request-workspace"><section className="panel scan-panel"><div className="panel-heading"><div><h2><ScanLine size={18}/> Plate identification</h2><span>Recognition identifies only. It never charges automatically.</span></div><span className="status status-pending">REVIEW REQUIRED</span></div><div className="upload-zone">{cameraOn?<div className="camera-view"><video ref={videoRef} autoPlay playsInline/><button className="btn btn-primary" onClick={captureStill} data-testid="button-capture-still"><Camera size={16}/>Capture still</button></div>:scanImage?<div className="image-review"><img src={scanImage} alt="Uploaded plate photo for review" style={{transform:`scale(${scanZoom})`}}/><div className="image-overlay">REVIEW CROP</div><button className="image-clear" onClick={()=>{setScanImage('');setScanFile(null);setScanPlate('')}} aria-label="Remove image"><X size={15}/></button></div>:<div className="upload-prompt"><span className="upload-icon"><Upload size={23}/></span><strong>Upload a plate photo</strong><span>JPG or PNG · use a clear still image</span><div><label className="btn btn-quiet upload-button" data-testid="button-upload-photo"><Upload size={15}/>Choose photo<input hidden type="file" accept="image/*" capture="environment" onChange={e=>onImage(e.target.files?.[0])}/></label><button type="button" className="btn btn-quiet" onClick={startCamera} data-testid="button-open-camera"><Camera size={15}/>Use camera</button></div></div>}</div>{scanImage&&<div className="crop-controls"><label>Crop zoom <input aria-label="Crop zoom" type="range" min="1" max="2.4" step=".1" value={scanZoom} onChange={e=>setScanZoom(Number(e.target.value))}/></label><button className="btn btn-quiet" disabled={!scanFile||!!ocrStatus.includes('Reading')} onClick={()=>scanFile&&callOcr(scanFile,scanZoom)} data-testid="button-read-plate"><Sparkles size={15}/>Read plate</button></div>}{ocrStatus&&<div className="ocr-message" role="status"><Activity size={15}/>{ocrStatus}</div>}<div className="identification-rule"><ShieldCheck size={16}/><span>Plate recognition is an identification aid only. Always review and correct the text below.</span></div></section><form className="panel request-form" onSubmit={submitRequest}><div className="eyebrow">REQUEST DETAILS</div><h2>Send for driver approval</h2><p>Submit a request only after the plate and amount are reviewed.</p><Field label="Plate number"><input name="plate" className="input plate-input" value={scanPlate} onChange={e=>setScanPlate(e.target.value.toUpperCase())} required minLength={2} maxLength={20} placeholder="Enter or correct plate" data-testid="input-request-plate"/></Field><Field label="Service category"><select className="input" name="category" required data-testid="select-service-category">{categoryOptions.map(c=><option key={c} value={c}>{categoryLabel(c)}</option>)}</select></Field><Field label="Amount (KWD)"><div className="currency-input"><input name="amount" className="input" type="number" required min=".001" max="10000" step=".001" placeholder="0.000" data-testid="input-request-amount"/><span>KWD</span></div></Field><Field label="Description (optional)"><input name="description" className="input" maxLength={240} placeholder="What is this request for?" data-testid="input-request-description"/></Field><Field label="Order reference (optional)"><input name="reference" className="input" maxLength={80} placeholder="Order or lane reference" data-testid="input-order-reference"/></Field><div className="request-notice"><CircleAlert size={15}/>The driver must explicitly approve. Plate recognition will not trigger a charge.</div><button className="btn btn-primary full-btn" disabled={createRequest.isPending} data-testid="button-submit-request">{createRequest.isPending?'Sending request…':'Send approval request'}<ArrowRight size={15}/></button>{createRequest.isError&&<p className="form-error">Request could not be sent. Confirm the plate is registered and try again.</p>}</form></div></main>;
 
@@ -332,11 +394,11 @@ function MerchantProfilePage({ profileQuery, services, mutation, qc }: { profile
   const [business,setBusiness]=useState(current?.businessName??'');
   const [category,setCategory]=useState<ServiceCategory>(current?.serviceCategory??'drive_thru');
   const [locationName,setLocationName]=useState(current?.locationName??'');
-  const [latitude,setLatitude]=useState(String(current?.latitude??29.3759));
-  const [longitude,setLongitude]=useState(String(current?.longitude??47.9774));
+  const [latitude,setLatitude]=useState(current?.latitude!==undefined?String(current.latitude):'');
+  const [longitude,setLongitude]=useState(current?.longitude!==undefined?String(current.longitude):'');
   const [radius,setRadius]=useState(String(current?.geofenceRadiusMeters??150));
   useEffect(()=>{if(current){setBusiness(current.businessName);setCategory(current.serviceCategory);setLocationName(current.locationName);setLatitude(String(current.latitude));setLongitude(String(current.longitude));setRadius(String(current.geofenceRadiusMeters));}},[current?.id]);
-  const submit=(e:FormEvent)=>{e.preventDefault();mutation.mutate({data:{businessName:business,serviceCategory:category,locationName,latitude:Number(latitude),longitude:Number(longitude),geofenceRadiusMeters:Number(radius)}},{onSuccess:()=>invalid(qc,getGetMerchantProfileQueryKey(),getGetMerchantDashboardQueryKey())});};
+  const submit=(e:FormEvent)=>{e.preventDefault();if(!latitude.trim()||!longitude.trim()){window.alert('Enter the actual service location coordinates.');return;}mutation.mutate({data:{businessName:business,serviceCategory:category,locationName,latitude:Number(latitude),longitude:Number(longitude),geofenceRadiusMeters:Number(radius)}},{onSuccess:()=>invalid(qc,getGetMerchantProfileQueryKey(),getGetMerchantDashboardQueryKey())});};
   return <main className="content"><PageHeading eyebrow="MERCHANT PORTAL · PROFILE" title="Business profile" detail="Set your service location and business details."/><div className="merchant-profile-layout"><form className="panel merchant-profile-form" onSubmit={submit}><div className="eyebrow">BUSINESS DETAILS</div><h2>Location & service</h2>{profileQuery.isLoading?<div className="skeleton" style={{height:240}}/>:<><Field label="Business name"><input className="input" value={business} required maxLength={120} onChange={e=>setBusiness(e.target.value)} data-testid="input-business-name"/></Field><Field label="Service category"><select className="input" value={category} onChange={e=>setCategory(e.target.value as ServiceCategory)} data-testid="select-merchant-category">{['drive_thru','fuel','parking','car_wash','other'].map(c=><option key={c} value={c}>{categoryLabel(c)}</option>)}</select></Field><Field label="Location name"><input className="input" value={locationName} required maxLength={120} onChange={e=>setLocationName(e.target.value)} placeholder="Area or branch name" data-testid="input-location-name"/></Field><div className="two-fields"><Field label="Latitude"><input className="input" type="number" step=".000001" min="-90" max="90" value={latitude} onChange={e=>setLatitude(e.target.value)} data-testid="input-latitude"/></Field><Field label="Longitude"><input className="input" type="number" step=".000001" min="-180" max="180" value={longitude} onChange={e=>setLongitude(e.target.value)} data-testid="input-longitude"/></Field></div><Field label="Service radius (meters)"><input className="input" type="number" min="25" max="5000" value={radius} onChange={e=>setRadius(e.target.value)} data-testid="input-geofence-radius"/></Field><div className="info-note"><MapPin size={15}/>Location is stored as a service reference. This app does not claim real-time geofence acceptance.</div><button className="btn btn-primary" disabled={mutation.isPending} data-testid="button-save-merchant-profile">{mutation.isPending?'Saving…':'Save business profile'}<Check size={15}/></button>{mutation.isError&&<p className="form-error">Could not save your business profile.</p>}</>}</form><aside className="panel profile-aside"><div className="profile-map"><div className="map-grid"/><MapPin size={30}/><span>KUWAIT</span></div><div className="eyebrow">ACCOUNT STATUS</div><div className="profile-status-row"><span>Verification</span><Status value={current?.verificationStatus||'pending'}/></div><div className="profile-status-row"><span>Account</span><Status value={current?.status||'active'}/></div><p>Merchant status is provided by the platform API. Profile edits do not imply verification or live payment acceptance.</p><div className="small-label">DEMO SERVICE LOCATIONS</div>{services.slice(0,3).map(s=><div className="service-location-row" key={s.id}><MapPin size={14}/><span>{s.merchantName}<small>{s.locationName} · {categoryLabel(s.category)}</small></span></div>)}</aside></div></main>;
 }
 
@@ -369,6 +431,11 @@ function Protected({ section }: { section: string }) {
 function HomeRoute() {
   const {isLoaded,isSignedIn}=useAuth();
   const profile=useGetCurrentProfile({query:{queryKey:getGetCurrentProfileQueryKey(),enabled:isLoaded&&!!isSignedIn}});
+  if(isLoaded&&isSignedIn&&profile.isLoading) return <PageLoading/>;
+  if(isLoaded&&isSignedIn&&profile.isError) {
+    if((profile.error as any)?.status===404) return <Redirect to="/onboarding"/>;
+    return <div className="content"><QueryError retry={()=>profile.refetch()}/></div>;
+  }
   if(isLoaded&&isSignedIn&&profile.data) return <Redirect to={profile.data.role==='admin'?'/admin':profile.data.role==='merchant'?'/merchant':'/driver'}/>;
   return <Landing/>;
 }
@@ -391,6 +458,7 @@ function ClerkRoutes() {
       <Route path="/merchant" component={()=> <Protected section="overview"/>}/>
       <Route path="/merchant/request" component={()=> <Protected section="new-request"/>}/>
       <Route path="/merchant/history" component={()=> <Protected section="history"/>}/>
+      <Route path="/merchant/transactions" component={()=> <Protected section="transactions"/>}/>
       <Route path="/merchant/profile" component={()=> <Protected section="profile"/>}/>
       <Route path="/admin" component={()=> <Protected section="overview"/>}/>
       <Route path="/admin/accounts" component={()=> <Protected section="accounts"/>}/>

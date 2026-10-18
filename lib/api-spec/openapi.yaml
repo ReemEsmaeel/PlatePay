@@ -1047,7 +1047,9 @@ components:
         plateNumber:
           type: string
         serviceCategory:
-          $ref: "#/components/schemas/ServiceCategory"
+          oneOf:
+            - $ref: "#/components/schemas/ServiceCategory"
+            - type: "null"
         amountFils:
           type: integer
         currency:

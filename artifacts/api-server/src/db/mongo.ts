@@ -1,7 +1,16 @@
 import mongoose from "mongoose";
 import { logger } from "../lib/logger";
+import {
+  AuditLogModel, MerchantModel, PaymentRequestModel, SpendingLimitModel,
+  TransactionModel, UserModel, VehicleModel, WalletEntryModel, WalletModel,
+} from "../models";
 
 let connectionPromise: Promise<typeof mongoose> | undefined;
+let indexesInitialized = false;
+
+export function isDatabaseReady() {
+  return mongoose.connection.readyState === 1 && indexesInitialized;
+}
 
 export async function connectMongoDB() {
   const uri = process.env.MONGODB_URI;
@@ -11,11 +20,18 @@ export async function connectMongoDB() {
 
   connectionPromise ??= mongoose.connect(uri, {
     serverSelectionTimeoutMS: 15_000,
-    autoIndex: process.env.NODE_ENV !== "production",
+    autoIndex: false,
   });
 
   try {
     const connection = await connectionPromise;
+    if (!indexesInitialized) {
+      await Promise.all([
+        UserModel, VehicleModel, MerchantModel, PaymentRequestModel, WalletModel,
+        WalletEntryModel, SpendingLimitModel, TransactionModel, AuditLogModel,
+      ].map((model) => model.createIndexes()));
+      indexesInitialized = true;
+    }
     logger.info("Connected to MongoDB");
     return connection;
   } catch (error) {

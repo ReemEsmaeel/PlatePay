@@ -16,21 +16,24 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-async function start() {
+async function connectWithRetry() {
   try {
     await connectMongoDB();
-    app.listen(port, (err) => {
-      if (err) {
-        logger.error({ err }, "Error listening on port");
-        process.exit(1);
-      }
-
-      logger.info({ port }, "Server listening");
-    });
   } catch (error) {
-    logger.fatal({ err: error }, "Unable to start PlatePay API");
-    process.exit(1);
+    logger.error(
+      { errorType: error instanceof Error ? error.name : "UnknownError" },
+      "MongoDB connection failed. Database routes return 503; authentication proxy remains available.",
+    );
+    const retry = setTimeout(() => { void connectWithRetry(); }, 30_000);
+    retry.unref();
   }
 }
 
-void start();
+app.listen(port, (err) => {
+  if (err) {
+    logger.error({ err }, "Error listening on port");
+    process.exit(1);
+  }
+  logger.info({ port }, "Server listening");
+});
+void connectWithRetry();

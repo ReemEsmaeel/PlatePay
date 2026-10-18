@@ -214,6 +214,10 @@ router.patch(
     if (body.plateNumber !== undefined) {
       update.plateNumber = body.plateNumber.trim();
       update.normalizedPlate = normalizePlate(body.plateNumber);
+      if (String(update.normalizedPlate).length < 2) {
+        res.status(400).json({ error: "Enter a valid vehicle plate." });
+        return;
+      }
     }
     if (body.nickname !== undefined) update.nickname = body.nickname?.trim() || null;
     if (body.status !== undefined) update.status = body.status;
@@ -280,7 +284,7 @@ router.get("/services", async (req, res) => {
     .lean();
   const ownerNames = new Map(owners.map((owner) => [owner._id.toString(), owner.displayName]));
   res.json(
-    merchants.map((merchant) => ({
+    merchants.filter((merchant) => ownerNames.has(merchant.userId.toString())).map((merchant) => ({
       id: merchant._id.toString(),
       merchantName: merchant.businessName || ownerNames.get(merchant.userId.toString()) || "Merchant",
       category: merchant.serviceCategory,

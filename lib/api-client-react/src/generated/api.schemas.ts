@@ -446,7 +446,7 @@ export interface AdminTransaction {
   driverName: string;
   merchantName: string;
   plateNumber: string;
-  serviceCategory: ServiceCategory;
+  serviceCategory: ServiceCategory | null;
   amountFils: number;
   currency: AdminTransactionCurrency;
   status: TransactionStatus;

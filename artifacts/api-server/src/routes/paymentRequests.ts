@@ -23,6 +23,7 @@ import {
   PaymentRequestModel,
   SpendingLimitModel,
   TransactionModel,
+  UserModel,
   VehicleModel,
   WalletEntryModel,
   WalletModel,
@@ -158,9 +159,12 @@ router.post(
       res.status(404).json({ error: "No active PlatePay vehicle matches that plate." });
       return;
     }
-    const [driver, request] = await Promise.all([
-      mongoose.model("PlatePayUser").findOne({ _id: vehicle.userId, status: "active" }),
-      PaymentRequestModel.create({
+    const driver = await UserModel.findOne({ _id: vehicle.userId, role: "driver", status: "active" });
+    if (!driver) {
+      res.status(404).json({ error: "The vehicle owner account is unavailable." });
+      return;
+    }
+    const request = await PaymentRequestModel.create({
         merchantId: merchant._id,
         driverId: vehicle.userId,
         vehicleId: vehicle._id,
@@ -173,13 +177,7 @@ router.post(
         description: body.description?.trim() || null,
         orderReference: body.orderReference?.trim() || null,
         status: "pending",
-      }),
-    ]);
-    if (!driver) {
-      await PaymentRequestModel.deleteOne({ _id: request._id });
-      res.status(404).json({ error: "The vehicle owner account is unavailable." });
-      return;
-    }
+      });
     res.status(201).json(requestJson(request));
   },
 );
@@ -261,6 +259,10 @@ router.post(
             _id: params.requestId,
             driverId: user._id,
           }).session(session);
+          if (current?.status === "approved") {
+            approvedId = current._id;
+            return;
+          }
           if (current?.status === "pending" && current.expiresAt <= now) {
             current.status = "expired";
             await current.save({ session });
@@ -275,6 +277,7 @@ router.post(
             _id: request.vehicleId,
             userId: user._id,
             status: "active",
+            normalizedPlate: request.normalizedPlate,
           }).session(session),
         ]);
         if (
@@ -284,6 +287,13 @@ router.post(
           !vehicle
         ) {
           throw new PaymentRuleError("The merchant or linked vehicle is unavailable.", 403);
+        }
+        const activeAccounts = await UserModel.countDocuments({
+          _id: { $in: [user._id, merchant.userId] },
+          status: "active",
+        }).session(session);
+        if (activeAccounts !== 2) {
+          throw new PaymentRuleError("The driver or merchant account is unavailable.", 403);
         }
 
         const distance = distanceMeters(

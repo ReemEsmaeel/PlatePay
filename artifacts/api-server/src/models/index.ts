@@ -104,6 +104,10 @@ walletEntrySchema.index(
   { unique: true, partialFilterExpression: { paymentRequestId: { $type: "objectId" } } },
 );
 walletEntrySchema.index({ userId: 1, createdAt: -1 });
+walletEntrySchema.index(
+  { stripeSessionId: 1 },
+  { unique: true, partialFilterExpression: { stripeSessionId: { $type: "string" } } },
+);
 
 const spendingLimitSchema = new Schema(
   {
@@ -121,7 +125,7 @@ const transactionSchema = new Schema(
     driverId: { type: Schema.Types.ObjectId, ref: "PlatePayUser", required: true, index: true },
     merchantId: { type: Schema.Types.ObjectId, ref: "PlatePayMerchant", default: null, index: true },
     vehicleId: { type: Schema.Types.ObjectId, ref: "PlatePayVehicle", default: null },
-    paymentRequestId: { type: Schema.Types.ObjectId, ref: "PlatePayPaymentRequest", default: null, unique: true, sparse: true },
+    paymentRequestId: { type: Schema.Types.ObjectId, ref: "PlatePayPaymentRequest", default: null },
     type: { type: String, enum: ["merchant_payment", "wallet_top_up", "refund"], required: true },
     status: { type: String, enum: ["pending", "completed", "rejected", "failed", "refunded"], required: true, index: true },
     amountFils: { type: Number, required: true },
@@ -135,6 +139,14 @@ const transactionSchema = new Schema(
 );
 transactionSchema.index({ driverId: 1, createdAt: -1 });
 transactionSchema.index({ merchantId: 1, createdAt: -1 });
+transactionSchema.index(
+  { paymentRequestId: 1 },
+  { unique: true, partialFilterExpression: { paymentRequestId: { $type: "objectId" } } },
+);
+transactionSchema.index(
+  { stripeSessionId: 1 },
+  { unique: true, partialFilterExpression: { stripeSessionId: { $type: "string" } } },
+);
 
 const auditLogSchema = new Schema(
   {

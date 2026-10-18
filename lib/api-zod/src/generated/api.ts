@@ -649,7 +649,7 @@ export const ListAdminTransactionsResponseItem = zod.object({
   "driverName": zod.string(),
   "merchantName": zod.string(),
   "plateNumber": zod.string(),
-  "serviceCategory": zod.enum(['drive_thru', 'fuel', 'parking', 'car_wash', 'other']),
+  "serviceCategory": zod.union([zod.enum(['drive_thru', 'fuel', 'parking', 'car_wash', 'other']),zod.null()]),
   "amountFils": zod.number().int(),
   "currency": zod.enum(['KWD']),
   "status": zod.enum(['pending', 'completed', 'rejected', 'failed', 'refunded']),

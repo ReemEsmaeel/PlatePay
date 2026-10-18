@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type ErrorRequestHandler } from "express";
 import cors from "cors";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
@@ -47,5 +47,14 @@ app.use(
 );
 
 app.use("/api", router);
+const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
+  if (error?.name === "CastError" || error?.name === "ValidationError") {
+    res.status(400).json({ error: "The request contains an invalid value." });
+    return;
+  }
+  req.log.error({ errorType: error instanceof Error ? error.name : "UnknownError" }, "API request failed");
+  res.status(500).json({ error: "The request could not be completed." });
+};
+app.use(errorHandler);
 
 export default app;

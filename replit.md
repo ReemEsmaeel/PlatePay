@@ -38,6 +38,8 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - Store KWD amounts as integer fils (1 KWD = 1,000 fils) to avoid floating-point rounding.
 - Plate recognition identifies a vehicle only. A driver must explicitly approve each merchant request before any wallet debit.
 - Plate OCR uses the user-selected Tesseract.js in the browser on a cropped image or still camera capture; do not persist the source photo.
+- Keep the authentication proxy available during database outages, but return explicit HTTP 503 responses for database-backed operations. This preserves sign-in without inventing application data.
+- Normalize equivalent Arabic/Latin numerals and separators, not guessed cross-script letter transliterations; uncertain OCR must be corrected to the registered plate to avoid matching a different vehicle.
 
 ## Product
 
@@ -54,6 +56,7 @@ The expanded MVP includes driver, merchant, and admin areas; vehicle registratio
 - Never expose secret values in source code, logs, or chat. Use Replit Secrets; commit `.env.example` only.
 - Validate ownership, role, available funds, daily/per-transaction limits, geofence, and pending status on the server before approving a payment.
 - Payment approval must be idempotent; retries must not debit a wallet twice.
+- Database-backed routes become ready only after required unique indexes are verified, including in production; connection success alone is not sufficient for safe wallet operations.
 - Keep all Stripe activity in test mode until the user explicitly requests a production change.
 
 ## Pointers
