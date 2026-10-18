@@ -3,13 +3,25 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: PlatePay application API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: profile
+    description: Authenticated user profiles and vehicles
+  - name: services
+    description: Merchant service locations
+  - name: payments
+    description: Merchant requests and driver approvals
+  - name: wallet
+    description: Wallet balance, top-ups, and spending limits
+  - name: transactions
+    description: Driver and merchant transaction history
+  - name: admin
+    description: Restricted platform administration
 paths:
   /healthz:
     get:
@@ -24,7 +36,555 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/me:
+    get:
+      operationId: getCurrentProfile
+      tags: [profile]
+      summary: Get the signed-in user's PlatePay profile
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /auth/profile:
+    post:
+      operationId: createProfile
+      tags: [profile]
+      summary: Create a driver or merchant profile for the signed-in user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileInput"
+      responses:
+        "201":
+          description: Profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /vehicles:
+    get:
+      operationId: listVehicles
+      tags: [profile]
+      summary: List the signed-in driver's registered vehicles
+      responses:
+        "200":
+          description: Registered vehicles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vehicle"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createVehicle
+      tags: [profile]
+      summary: Register a vehicle plate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleInput"
+      responses:
+        "201":
+          description: Vehicle registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /vehicles/{vehicleId}:
+    patch:
+      operationId: updateVehicle
+      tags: [profile]
+      summary: Update a registered vehicle
+      parameters:
+        - $ref: "#/components/parameters/VehicleId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleUpdate"
+      responses:
+        "200":
+          description: Vehicle updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteVehicle
+      tags: [profile]
+      summary: Deactivate a registered vehicle
+      parameters:
+        - $ref: "#/components/parameters/VehicleId"
+      responses:
+        "204":
+          description: Vehicle deactivated
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /services:
+    get:
+      operationId: listServices
+      tags: [services]
+      summary: List available demo merchants and service locations
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: "#/components/schemas/ServiceCategory"
+      responses:
+        "200":
+          description: Service locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ServiceLocation"
+  /merchant/profile:
+    get:
+      operationId: getMerchantProfile
+      tags: [services]
+      summary: Get the signed-in merchant profile
+      responses:
+        "200":
+          description: Merchant profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MerchantProfile"
+    put:
+      operationId: updateMerchantProfile
+      tags: [services]
+      summary: Create or update the signed-in merchant profile and service location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MerchantProfileInput"
+      responses:
+        "200":
+          description: Merchant profile saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MerchantProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /merchant/dashboard:
+    get:
+      operationId: getMerchantDashboard
+      tags: [services]
+      summary: Get merchant summary and recent payment requests
+      responses:
+        "200":
+          description: Merchant dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MerchantDashboard"
+  /payment-requests:
+    get:
+      operationId: listPaymentRequests
+      tags: [payments]
+      summary: List payment requests visible to the signed-in driver or merchant
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/PaymentRequestStatus"
+      responses:
+        "200":
+          description: Payment requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentRequest"
+    post:
+      operationId: createPaymentRequest
+      tags: [payments]
+      summary: Create a pending merchant payment request for a registered plate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRequestInput"
+      responses:
+        "201":
+          description: Payment request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequest"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /payment-requests/{requestId}:
+    get:
+      operationId: getPaymentRequest
+      tags: [payments]
+      summary: Get a payment request visible to the signed-in user
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      responses:
+        "200":
+          description: Payment request details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /payment-requests/{requestId}/approve:
+    post:
+      operationId: approvePaymentRequest
+      tags: [payments]
+      summary: Explicitly approve and securely process a pending payment request
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentApprovalInput"
+      responses:
+        "200":
+          description: Request approved and wallet updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequest"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /payment-requests/{requestId}/reject:
+    post:
+      operationId: rejectPaymentRequest
+      tags: [payments]
+      summary: Reject a pending payment request without changing the wallet
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRejectionInput"
+      responses:
+        "200":
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /wallet:
+    get:
+      operationId: getWallet
+      tags: [wallet]
+      summary: Get the signed-in driver's KWD wallet balance
+      responses:
+        "200":
+          description: Wallet and recent ledger entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+  /wallet/topups/checkout:
+    post:
+      operationId: createWalletTopUpCheckout
+      tags: [wallet]
+      summary: Create a Stripe test-mode checkout for a wallet top-up
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletTopUpInput"
+      responses:
+        "201":
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSession"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /spending-limits:
+    get:
+      operationId: getSpendingLimits
+      tags: [wallet]
+      summary: Get configured limits and current daily spend
+      responses:
+        "200":
+          description: Spending limit status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpendingLimits"
+    put:
+      operationId: updateSpendingLimits
+      tags: [wallet]
+      summary: Update daily and per-transaction spending limits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpendingLimitsInput"
+      responses:
+        "200":
+          description: Updated spending limit status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpendingLimits"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List the signed-in driver's or merchant's transactions
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/TransactionStatus"
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/TransactionType"
+      responses:
+        "200":
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+  /transactions/{transactionId}/receipt:
+    get:
+      operationId: getTransactionReceipt
+      tags: [transactions]
+      summary: Get receipt details for an authorized transaction
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+      responses:
+        "200":
+          description: Receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Receipt"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/overview:
+    get:
+      operationId: getAdminOverview
+      tags: [admin]
+      summary: Get platform-wide totals and pending request count
+      responses:
+        "200":
+          description: Platform overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOverview"
+  /admin/accounts:
+    get:
+      operationId: listAdminAccounts
+      tags: [admin]
+      summary: List accounts for authorized administrators
+      parameters:
+        - name: role
+          in: query
+          schema:
+            $ref: "#/components/schemas/UserRole"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/AccountStatus"
+      responses:
+        "200":
+          description: Accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminAccount"
+  /admin/accounts/{accountId}/status:
+    patch:
+      operationId: updateAccountStatus
+      tags: [admin]
+      summary: Activate or suspend a driver or merchant account
+      parameters:
+        - $ref: "#/components/parameters/AccountId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountStatusInput"
+      responses:
+        "200":
+          description: Account status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccount"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/merchants:
+    get:
+      operationId: listAdminMerchants
+      tags: [admin]
+      summary: List merchants and their verification statuses
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/AccountStatus"
+      responses:
+        "200":
+          description: Merchant accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminMerchant"
+  /admin/merchants/{merchantId}/status:
+    patch:
+      operationId: updateMerchantStatus
+      tags: [admin]
+      summary: Update merchant account or verification status
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MerchantAdminStatusInput"
+      responses:
+        "200":
+          description: Merchant status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMerchant"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/transactions:
+    get:
+      operationId: listAdminTransactions
+      tags: [admin]
+      summary: List platform transactions for administrator review
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/TransactionStatus"
+        - name: merchantId
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Platform transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminTransaction"
+  /admin/audit-logs:
+    get:
+      operationId: listAdminAuditLogs
+      tags: [admin]
+      summary: List recent platform administration actions
+      responses:
+        "200":
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditLogEntry"
 components:
+  parameters:
+    VehicleId:
+      name: vehicleId
+      in: path
+      required: true
+      schema:
+        type: string
+    RequestId:
+      name: requestId
+      in: path
+      required: true
+      schema:
+        type: string
+    TransactionId:
+      name: transactionId
+      in: path
+      required: true
+      schema:
+        type: string
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +593,518 @@ components:
           type: string
       required:
         - status
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    UserRole:
+      type: string
+      enum: [driver, merchant, admin]
+    SignupRole:
+      type: string
+      enum: [driver, merchant]
+    AccountStatus:
+      type: string
+      enum: [active, suspended]
+    ServiceCategory:
+      type: string
+      enum: [drive_thru, fuel, parking, car_wash, other]
+    PaymentRequestStatus:
+      type: string
+      enum: [pending, approved, rejected, expired, failed]
+    TransactionStatus:
+      type: string
+      enum: [pending, completed, rejected, failed, refunded]
+    TransactionType:
+      type: string
+      enum: [merchant_payment, wallet_top_up, refund]
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        clerkUserId:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        status:
+          $ref: "#/components/schemas/AccountStatus"
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, clerkUserId, email, displayName, role, status, createdAt]
+    ProfileInput:
+      type: object
+      properties:
+        role:
+          $ref: "#/components/schemas/SignupRole"
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+      required: [role, displayName]
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: string
+        plateNumber:
+          type: string
+        normalizedPlate:
+          type: string
+        nickname:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, inactive]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, plateNumber, normalizedPlate, nickname, status, createdAt]
+    VehicleInput:
+      type: object
+      properties:
+        plateNumber:
+          type: string
+          minLength: 2
+          maxLength: 20
+        nickname:
+          type: string
+          maxLength: 60
+      required: [plateNumber]
+    VehicleUpdate:
+      type: object
+      properties:
+        plateNumber:
+          type: string
+          minLength: 2
+          maxLength: 20
+        nickname:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, inactive]
+    MerchantProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        businessName:
+          type: string
+        serviceCategory:
+          $ref: "#/components/schemas/ServiceCategory"
+        locationName:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        geofenceRadiusMeters:
+          type: integer
+        status:
+          $ref: "#/components/schemas/AccountStatus"
+        verificationStatus:
+          type: string
+          enum: [pending, verified, rejected]
+      required: [id, businessName, serviceCategory, locationName, latitude, longitude, geofenceRadiusMeters, status]
+    MerchantProfileInput:
+      type: object
+      properties:
+        businessName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        serviceCategory:
+          $ref: "#/components/schemas/ServiceCategory"
+        locationName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+        geofenceRadiusMeters:
+          type: integer
+          minimum: 25
+          maximum: 5000
+      required: [businessName, serviceCategory, locationName, latitude, longitude, geofenceRadiusMeters]
+    ServiceLocation:
+      type: object
+      properties:
+        id:
+          type: string
+        merchantName:
+          type: string
+        category:
+          $ref: "#/components/schemas/ServiceCategory"
+        locationName:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        geofenceRadiusMeters:
+          type: integer
+      required: [id, merchantName, category, locationName, latitude, longitude, geofenceRadiusMeters]
+    PaymentRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        merchantId:
+          type: string
+        merchantName:
+          type: string
+        driverId:
+          type: string
+        vehicleId:
+          type: string
+        plateNumber:
+          type: string
+        serviceCategory:
+          $ref: "#/components/schemas/ServiceCategory"
+        amountFils:
+          type: integer
+        currency:
+          type: string
+          enum: [KWD]
+        description:
+          type: ["string", "null"]
+        orderReference:
+          type: ["string", "null"]
+        status:
+          $ref: "#/components/schemas/PaymentRequestStatus"
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+        decidedAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [id, merchantId, merchantName, driverId, vehicleId, plateNumber, serviceCategory, amountFils, currency, description, orderReference, status, createdAt, expiresAt, decidedAt]
+    PaymentRequestInput:
+      type: object
+      properties:
+        plateNumber:
+          type: string
+          minLength: 2
+          maxLength: 20
+        amountFils:
+          type: integer
+          minimum: 1
+        serviceCategory:
+          $ref: "#/components/schemas/ServiceCategory"
+        description:
+          type: string
+          maxLength: 240
+        orderReference:
+          type: string
+          maxLength: 80
+      required: [plateNumber, amountFils, serviceCategory]
+    PaymentApprovalInput:
+      type: object
+      properties:
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+        idempotencyKey:
+          type: string
+          minLength: 8
+          maxLength: 128
+      required: [latitude, longitude, idempotencyKey]
+    PaymentRejectionInput:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 240
+    Wallet:
+      type: object
+      properties:
+        balanceFils:
+          type: integer
+        currency:
+          type: string
+          enum: [KWD]
+        recentEntries:
+          type: array
+          items:
+            $ref: "#/components/schemas/WalletLedgerEntry"
+      required: [balanceFils, currency, recentEntries]
+    WalletLedgerEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: "#/components/schemas/TransactionType"
+        amountFils:
+          type: integer
+        currency:
+          type: string
+          enum: [KWD]
+        status:
+          $ref: "#/components/schemas/TransactionStatus"
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, type, amountFils, currency, status, description, createdAt]
+    WalletTopUpInput:
+      type: object
+      properties:
+        amountFils:
+          type: integer
+          minimum: 1000
+          maximum: 1000000
+      required: [amountFils]
+    CheckoutSession:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        checkoutUrl:
+          type: string
+          format: uri
+      required: [sessionId, checkoutUrl]
+    SpendingLimits:
+      type: object
+      properties:
+        dailyLimitFils:
+          type: integer
+        perTransactionLimitFils:
+          type: integer
+        spentTodayFils:
+          type: integer
+        remainingTodayFils:
+          type: integer
+        currency:
+          type: string
+          enum: [KWD]
+      required: [dailyLimitFils, perTransactionLimitFils, spentTodayFils, remainingTodayFils, currency]
+    SpendingLimitsInput:
+      type: object
+      properties:
+        dailyLimitFils:
+          type: integer
+          minimum: 1000
+          maximum: 10000000
+        perTransactionLimitFils:
+          type: integer
+          minimum: 100
+          maximum: 1000000
+      required: [dailyLimitFils, perTransactionLimitFils]
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: "#/components/schemas/TransactionType"
+        status:
+          $ref: "#/components/schemas/TransactionStatus"
+        amountFils:
+          type: integer
+        currency:
+          type: string
+          enum: [KWD]
+        merchantName:
+          type: ["string", "null"]
+        plateNumber:
+          type: ["string", "null"]
+        serviceCategory:
+          oneOf:
+            - $ref: "#/components/schemas/ServiceCategory"
+            - type: "null"
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, type, status, amountFils, currency, merchantName, plateNumber, serviceCategory, createdAt]
+    Receipt:
+      type: object
+      properties:
+        receiptNumber:
+          type: string
+        transaction:
+          $ref: "#/components/schemas/Transaction"
+        merchantLocation:
+          type: ["string", "null"]
+      required: [receiptNumber, transaction, merchantLocation]
+    MerchantDashboard:
+      type: object
+      properties:
+        merchant:
+          $ref: "#/components/schemas/MerchantProfile"
+        completedPayments:
+          type: integer
+        completedValueFils:
+          type: integer
+        pendingRequests:
+          type: integer
+        recentRequests:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentRequest"
+      required: [merchant, completedPayments, completedValueFils, pendingRequests, recentRequests]
+    AdminOverview:
+      type: object
+      properties:
+        driverCount:
+          type: integer
+        merchantCount:
+          type: integer
+        vehicleCount:
+          type: integer
+        completedTransactionCount:
+          type: integer
+        completedValueFils:
+          type: integer
+        pendingRequestCount:
+          type: integer
+      required: [driverCount, merchantCount, vehicleCount, completedTransactionCount, completedValueFils, pendingRequestCount]
+    AdminAccount:
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        status:
+          $ref: "#/components/schemas/AccountStatus"
+        plateNumbers:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, displayName, email, role, status, plateNumbers, createdAt]
+    AdminMerchant:
+      type: object
+      properties:
+        id:
+          type: string
+        businessName:
+          type: string
+        ownerName:
+          type: string
+        email:
+          type: string
+        serviceCategory:
+          $ref: "#/components/schemas/ServiceCategory"
+        locationName:
+          type: string
+        status:
+          $ref: "#/components/schemas/AccountStatus"
+        verificationStatus:
+          type: string
+          enum: [pending, verified, rejected]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, businessName, ownerName, email, serviceCategory, locationName, status, verificationStatus, createdAt]
+    MerchantAdminStatusInput:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/AccountStatus"
+        verificationStatus:
+          type: string
+          enum: [pending, verified, rejected]
+      minProperties: 1
+    AdminTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+        driverName:
+          type: string
+        merchantName:
+          type: string
+        plateNumber:
+          type: string
+        serviceCategory:
+          $ref: "#/components/schemas/ServiceCategory"
+        amountFils:
+          type: integer
+        currency:
+          type: string
+          enum: [KWD]
+        status:
+          $ref: "#/components/schemas/TransactionStatus"
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, driverName, merchantName, plateNumber, serviceCategory, amountFils, currency, status, createdAt]
+    AccountStatusInput:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/AccountStatus"
+      required: [status]
+    AuditLogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        actorName:
+          type: string
+        action:
+          type: string
+        targetType:
+          type: string
+        targetId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, actorName, action, targetType, targetId, createdAt]
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Request conflicts with current resource state
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
 

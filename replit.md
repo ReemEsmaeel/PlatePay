@@ -1,44 +1,60 @@
-# [Project name]
+# PlatePay
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and administrators, with explicit driver approval and test-mode payments.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the Express API server
+- `pnpm --filter @workspace/platepay run dev` — run the React + Vite web app
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required secret: `MONGODB_URI` — MongoDB Atlas URI for PlatePay application data
+- Clerk secrets are provisioned by Replit-managed Clerk.
+- Stripe test-mode integration must be connected before wallet top-ups can be enabled.
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Frontend: React + Vite in `artifacts/platepay`
+- API: shared Express 5 server in `artifacts/api-server`
+- PlatePay data: MongoDB Atlas + Mongoose
+- Authentication: Replit-managed Clerk; application roles are enforced by the API
+- API contract and validation: OpenAPI, Orval, and generated Zod schemas
+- Build: Vite for the frontend; esbuild for the API
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/platepay/src/` — PlatePay React pages, components, and browser-side plate reader
+- `artifacts/api-server/src/` — Express routes, Mongo connection, Mongoose models, and business logic
+- `lib/api-spec/openapi.yaml` — source of truth for application API contracts
+- `lib/api-client-react/src/generated/` and `lib/api-zod/src/generated/` — generated API hooks and schemas; regenerate from OpenAPI
+- `.local/platepay-design-reference/` — user-provided design reference files
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- MongoDB is the source of truth for PlatePay accounts, vehicles, merchant profiles, payment requests, wallets, and audit records; the workspace's PostgreSQL scaffold is not used for PlatePay business data.
+- Clerk owns sign-in and sessions; the MongoDB profile stores the PlatePay role. Admin privileges must never be self-selected at signup.
+- Store KWD amounts as integer fils (1 KWD = 1,000 fils) to avoid floating-point rounding.
+- Plate recognition identifies a vehicle only. A driver must explicitly approve each merchant request before any wallet debit.
+- Plate OCR uses the user-selected Tesseract.js in the browser on a cropped image or still camera capture; do not persist the source photo.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+The expanded MVP includes driver, merchant, and admin areas; vehicle registration and plate recognition; service locations and geofence checks; driver-approved payment requests; a wallet with Stripe test-mode top-ups and spending limits; transaction histories, receipts, and admin audit views.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Keep the build within the approved expanded requirements brief; do not build the future autonomous-mobility vision.
+- Explain changes in small, runnable increments. The user communicates in English.
+- Read this root `replit.md` before each implementation step.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Never expose secret values in source code, logs, or chat. Use Replit Secrets; commit `.env.example` only.
+- Validate ownership, role, available funds, daily/per-transaction limits, geofence, and pending status on the server before approving a payment.
+- Payment approval must be idempotent; retries must not debit a wallet twice.
+- Keep all Stripe activity in test mode until the user explicitly requests a production change.
 
 ## Pointers
 
