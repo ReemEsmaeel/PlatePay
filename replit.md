@@ -35,7 +35,7 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 ## Architecture decisions
 
 - MongoDB is the source of truth for PlatePay accounts, vehicles, merchant profiles, payment requests, wallets, and audit records; the workspace's PostgreSQL scaffold is not used for PlatePay business data.
-- The user chose fixed-IP outbound access for reliable production Atlas connectivity; configure an owner-provided SOCKS5 proxy while preserving TLS and a restricted Atlas allowlist. Development may connect directly through a verified, temporary single-IP `/32` entry. Do not open the database to all IPs as a permanent workaround.
+- Preserve TLS and a restricted Atlas allowlist for production. The user prefers free alternatives to a paid proxy; a proxy subscription has not been approved. Development may connect directly through a verified, temporary single-IP `/32` entry. Do not open the database to all IPs as a permanent workaround.
 - Clerk owns sign-in and sessions; the MongoDB profile stores the PlatePay role. Admin privileges must never be self-selected at signup.
 - Initial admin access is designated through `PLATEPAY_ADMIN_EMAIL`, granted only to its verified primary-email owner, and recorded once so restarts cannot restore revoked privileges.
 - Store KWD amounts as integer fils (1 KWD = 1,000 fils) to avoid floating-point rounding.
