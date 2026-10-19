@@ -114,7 +114,7 @@ function AuthFrame({ children }: { children: ReactNode }) {
   </main>;
 }
 
-function Landing() {
+function Landing({ accountError, retryAccount }: { accountError?: unknown; retryAccount?: () => void } = {}) {
   const { locale } = useLocale();
   const health = useHealthCheck();
   const { isSignedIn } = useAuth();
@@ -122,6 +122,7 @@ function Landing() {
   const checkState = health.isLoading ? 'Checking API' : health.isError ? 'API unavailable' : `API ${health.data?.status ?? 'connected'}`;
   return <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
     <header className="landing-nav"><Link href="/" className="brand-link"><Brand/></Link><nav className="landing-links"><a href="#how">{text(locale,'How it works','كيف تعمل')}</a><a href="#services">{text(locale,'For drivers & merchants','للسائقين والتجار')}</a></nav><div className="landing-actions"><LanguageToggle/><button className="btn btn-quiet signin-link" data-testid="link-sign-in" onClick={() => setLoc(isSignedIn ? '/onboarding' : '/sign-in')}>{isSignedIn ? text(locale,'Open portal','افتح البوابة') : text(locale,'Sign in','دخول')}</button><button className="btn btn-primary" data-testid="link-sign-up" onClick={() => setLoc('/sign-up')}>{text(locale,'Create account','إنشاء حساب')}<ArrowRight size={15}/></button></div></header>
+    {accountError != null && retryAccount && <QueryError error={accountError} retry={retryAccount}/>}
     <section className="landing-hero">
       <div className="hero-grid"/><div className="landing-hero-inner">
         <div className="hero-copy fade-up"><div className="eyebrow" style={{color:'#75dfc0'}}>{text(locale,'PLATEPAY · KUWAIT','بليت باي · الكويت')}</div><h1 className="hero-title">{text(locale,'Your plate.\nYour call.','لوحتك.\nقرارك.')}</h1><p>{text(locale,'A considered way to handle vehicle payments. Merchants send a request, you review it, and only you decide what happens next.','طريقة واضحة لإدارة مدفوعات المركبة. يرسل التاجر طلباً، تراجعه، وأنت وحدك تقرر ما يحدث.')}</p><div className="hero-buttons"><button className="btn btn-primary" onClick={() => setLoc('/sign-up')} data-testid="button-get-started">{text(locale,'Get started','ابدأ الآن')}<ArrowRight size={16}/></button><a className="btn btn-outline-light" href="#how" data-testid="link-how-it-works">{text(locale,'See how it works','اكتشف آلية العمل')}</a></div><div className="hero-trust"><span><ShieldCheck size={16}/> {text(locale,'Driver approval required','موافقة السائق مطلوبة')}</span><span><Activity size={16}/> {checkState}</span></div></div>
@@ -142,9 +143,12 @@ function Landing() {
 function PageLoading() {
   return <div className="content"><div className="skeleton" style={{height:25,width:210,marginBottom:12}}/><div className="skeleton" style={{height:100,width:'100%',marginBottom:18}}/><div className="skeleton" style={{height:260,width:'100%'}}/></div>;
 }
-function QueryError({ retry }: { retry: () => void }) {
+function QueryError({ retry, error, showHome = false }: { retry: () => void; error?: unknown; showHome?: boolean }) {
   const { locale } = useLocale();
-  return <div className="empty-state" data-testid="error-query"><CircleAlert size={24}/><strong>{text(locale,'We couldn’t load this information.','تعذر تحميل هذه المعلومات.')}</strong><span>{text(locale,'Check your connection, then try again.','تحقق من الاتصال ثم أعد المحاولة.')}</span><button className="btn btn-quiet" onClick={retry} data-testid="button-retry">{text(locale,'Try again','أعد المحاولة')}</button></div>;
+  const failure = error as { status?: number; data?: { error?: unknown } } | undefined;
+  const unavailable = failure?.status === 503;
+  const databaseUnavailable = unavailable && typeof failure?.data?.error === 'string' && failure.data.error.includes('database is unavailable');
+  return <div className="empty-state" role="alert" data-testid="error-query"><CircleAlert size={24}/><strong>{databaseUnavailable ? text(locale,'PlatePay’s database is unavailable.','قاعدة بيانات بليت باي غير متاحة.') : unavailable ? text(locale,'PlatePay is temporarily unavailable.','بليت باي غير متاح مؤقتاً.') : text(locale,'We couldn’t load this information.','تعذر تحميل هذه المعلومات.')}</strong><span>{databaseUnavailable ? text(locale,'The website is running, but account and payment features need a working MongoDB connection.','الموقع يعمل، لكن ميزات الحساب والدفع تتطلب اتصالاً بقاعدة بيانات MongoDB.') : unavailable ? text(locale,'This is a server-side issue, not a problem with your internet connection.','هذه مشكلة في الخادم وليست مشكلة في اتصالك بالإنترنت.') : text(locale,'Please try again. If the problem continues, the service may be unavailable.','حاول مرة أخرى. إذا استمرت المشكلة، فقد تكون الخدمة غير متاحة.')}</span>{databaseUnavailable && <span>{text(locale,'Retry after the database connection is restored. No account changes were saved by this failed request.','أعد المحاولة بعد استعادة الاتصال بقاعدة البيانات. لم يحفظ هذا الطلب الفاشل أي تغييرات في الحساب.')}</span>}<button className="btn btn-quiet" onClick={retry} data-testid="button-retry">{text(locale,'Try again','أعد المحاولة')}</button>{showHome && <Link className="btn btn-quiet" href="/">{text(locale,'Back to homepage','العودة إلى الصفحة الرئيسية')}</Link>}</div>;
 }
 function Empty({ title, detail, action }: { title: string; detail: string; action?: ReactNode }) {
   return <div className="empty-state" data-testid="empty-state"><span className="empty-icon"><FileText size={21}/></span><strong>{title}</strong><span>{detail}</span>{action}</div>;
@@ -418,7 +422,7 @@ function ProfileGate({ children }: { children: (profile: UserProfile) => ReactNo
   if(profileQ.isError) {
     const status=(profileQ.error as any)?.status;
     if(status===404||status===401) return <Onboarding/>;
-    return <div className="content"><QueryError retry={()=>profileQ.refetch()}/></div>;
+    return <div className="content"><QueryError error={profileQ.error} retry={()=>profileQ.refetch()} showHome/></div>;
   }
   const expected=loc.startsWith('/admin')?'admin':loc.startsWith('/merchant')?'merchant':'driver';
   if(profileQ.data?.role!==expected) return <Redirect to={profileQ.data?.role==='admin'?'/admin':profileQ.data?.role==='merchant'?'/merchant':'/driver'}/>;
@@ -434,7 +438,7 @@ function HomeRoute() {
   if(isLoaded&&isSignedIn&&profile.isLoading) return <PageLoading/>;
   if(isLoaded&&isSignedIn&&profile.isError) {
     if((profile.error as any)?.status===404) return <Redirect to="/onboarding"/>;
-    return <div className="content"><QueryError retry={()=>profile.refetch()}/></div>;
+    return <Landing accountError={profile.error} retryAccount={()=>profile.refetch()}/>;
   }
   if(isLoaded&&isSignedIn&&profile.data) return <Redirect to={profile.data.role==='admin'?'/admin':profile.data.role==='merchant'?'/merchant':'/driver'}/>;
   return <Landing/>;
