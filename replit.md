@@ -23,7 +23,7 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - Authentication: Replit-managed Clerk; application roles are enforced by the API
 - API contract and validation: OpenAPI, Orval, and generated Zod schemas
 - Build: Vite for the frontend; esbuild for the API
-- Intended final web deployment target: Vercel.
+- Intended final deployment target: both the React frontend and Express API together on Vercel, keeping MongoDB Atlas. Do not introduce a separate backend hosting provider without approval.
 
 ## Where things live
 
@@ -38,6 +38,7 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - MongoDB is the source of truth for PlatePay accounts, vehicles, merchant profiles, payment requests, wallets, and audit records; the workspace's PostgreSQL scaffold is not used for PlatePay business data.
 - Preserve TLS and a restricted Atlas allowlist for production. The user prefers free alternatives to a paid proxy; a proxy subscription has not been approved. Development may connect directly through a verified, temporary single-IP `/32` entry. Do not open the database to all IPs as a permanent workaround.
 - Clerk owns sign-in and sessions; the MongoDB profile stores the PlatePay role. Admin privileges must never be self-selected at signup.
+- Replit-managed Clerk is specific to Replit-hosted applications. Preparing external Vercel authentication requires a user-managed authentication setup and explicit approval before migrating or remapping existing user identities.
 - Initial admin access is designated through `PLATEPAY_ADMIN_EMAIL`, granted only to its verified primary-email owner, and recorded once so restarts cannot restore revoked privileges.
 - Store KWD amounts as integer fils (1 KWD = 1,000 fils) to avoid floating-point rounding.
 - Plate recognition identifies a vehicle only. A driver must explicitly approve each merchant request before any wallet debit.
