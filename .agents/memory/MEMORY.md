@@ -1,0 +1,1 @@
+- [Atlas development access](atlas-development-access.md) — dynamic egress does not itself require a paid proxy; a verified current server IP can be temporarily allowlisted.
