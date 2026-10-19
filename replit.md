@@ -23,6 +23,7 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - Authentication: Replit-managed Clerk; application roles are enforced by the API
 - API contract and validation: OpenAPI, Orval, and generated Zod schemas
 - Build: Vite for the frontend; esbuild for the API
+- Intended final web deployment target: Vercel.
 
 ## Where things live
 
