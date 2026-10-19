@@ -10,7 +10,7 @@ import type { UserRole } from './userRole';
 
 export interface UserProfile {
   id: string;
-  clerkUserId: string;
+  authAccountId: string;
   email: string;
   displayName: string;
   role: UserRole;

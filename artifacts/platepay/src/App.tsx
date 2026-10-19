@@ -1,8 +1,7 @@
 import { useContext, useEffect, useRef, useState, createContext, type FormEvent, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { ClerkProvider, SignIn, SignUp, useAuth, useClerk, useUser } from '@clerk/react';
-import { publishableKeyFromHost } from '@clerk/react/internal';
-import { shadcn } from '@clerk/themes';
+import { AuthProvider, useAuth } from './auth/AuthProvider';
+import { AuthForm } from './auth/AuthForm';
 import { Route, Switch, Link, Redirect, Router as WouterRouter, useLocation } from 'wouter';
 import {
   useHealthCheck, useGetCurrentProfile, useCreateProfile, useListVehicles, useCreateVehicle,
@@ -28,11 +27,8 @@ import {
 } from 'lucide-react';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
-const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 function stripBase(path: string) { return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path; }
-if (!clerkPubKey) throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
 
 type Locale = 'en' | 'ar';
 const LocaleContext = createContext<{ locale: Locale; toggle: () => void }>({ locale: 'en', toggle: () => undefined });
@@ -67,43 +63,17 @@ function LanguageToggle() {
   return <button className="language-toggle" data-testid="button-language" onClick={toggle} aria-label="Switch language"><Languages size={15}/><span>{locale === 'en' ? 'EN' : 'عربي'}</span><ChevronDown size={12}/></button>;
 }
 
-function ClerkQueryClientCacheInvalidator() {
-  const { addListener } = useClerk();
-  const qc = useQueryClient();
-  const prevId = useRef<string | null | undefined>(undefined);
-  useEffect(() => {
-    const unsubscribe = addListener(({ user }) => {
-      const nextId = user?.id ?? null;
-      if (prevId.current !== undefined && prevId.current !== nextId) qc.clear();
-      prevId.current = nextId;
-    });
-    return unsubscribe;
-  }, [addListener, qc]);
-  return null;
-}
-
-const appearance = {
-  theme: shadcn, cssLayerName: 'clerk',
-  options: { logoPlacement: 'inside' as const, logoLinkUrl: basePath || '/', logoImageUrl: `${window.location.origin}${basePath}/logo.svg` },
-  variables: { colorPrimary: '#078968', colorForeground: '#102b3a', colorMutedForeground: '#60727d', colorDanger: '#ba3f38', colorBackground: '#ffffff', colorInput: '#ffffff', colorInputForeground: '#102b3a', colorNeutral: '#d7e0e7', fontFamily: "'Plus Jakarta Sans', 'IBM Plex Sans Arabic', sans-serif", borderRadius: '0.75rem' },
-  elements: {
-    rootBox: 'w-full flex justify-center', cardBox: 'bg-white rounded-2xl w-[440px] max-w-full overflow-hidden',
-    card: '!shadow-none !border-0 !bg-transparent !rounded-none', footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
-    headerTitle: 'text-[#102b3a] font-bold', headerSubtitle: 'text-[#60727d]', socialButtonsBlockButtonText: { color: '#102b3a', fontWeight: 600 },
-    formFieldLabel: 'text-[#294452] font-semibold', footerActionLink: 'text-[#078968] font-bold', footerActionText: 'text-[#60727d]',
-    dividerText: 'text-[#60727d]', identityPreviewEditButton: 'text-[#078968]', formFieldSuccessText: 'text-[#087456]',
-    alertText: 'text-[#a52f2a]', logoBox: 'rounded-xl', logoImage: 'rounded-xl', socialButtonsBlockButton: { borderColor: '#dce5ec', color: '#102b3a', backgroundColor: '#ffffff', borderRadius: '0.5rem' },
-    formButtonPrimary: { backgroundColor: '#078968', color: '#ffffff', borderRadius: '0.5rem' }, formFieldInput: 'border-[#cbd7e0] rounded-lg',
-    footerAction: 'border-t border-[#edf1f4]', dividerLine: 'bg-[#e4eaef]', alert: 'rounded-lg', otpCodeFieldInput: 'rounded-lg',
-    formFieldRow: 'gap-2', main: 'gap-4',
-  },
-};
-
 function SignInPage() {
-  return <AuthFrame><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} forceRedirectUrl={`${basePath}/onboarding`} /></AuthFrame>;
+  const { locale } = useLocale();
+  const { signIn } = useAuth();
+  const [, setLocation] = useLocation();
+  return <AuthFrame><AuthForm mode="sign-in" locale={locale} onSubmit={async data => { await signIn(data); setLocation('/'); }}/></AuthFrame>;
 }
 function SignUpPage() {
-  return <AuthFrame><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} forceRedirectUrl={`${basePath}/onboarding`} /></AuthFrame>;
+  const { locale } = useLocale();
+  const { register } = useAuth();
+  const [, setLocation] = useLocation();
+  return <AuthFrame><AuthForm mode="sign-up" locale={locale} onSubmit={async data => { await register({ ...data, displayName: data.displayName ?? '' }); setLocation('/onboarding'); }}/></AuthFrame>;
 }
 function AuthFrame({ children }: { children: ReactNode }) {
   const { locale } = useLocale();
@@ -169,7 +139,8 @@ const adminLinks = [['/admin',LayoutDashboard,'Overview'],['/admin/accounts',Use
 
 function AppShell({ children, profile }: { children: ReactNode; profile: UserProfile }) {
   const { locale } = useLocale();
-  const { signOut } = useClerk();
+  const { signOut } = useAuth();
+  const [signOutError, setSignOutError] = useState(false);
   const [, setLocation] = useLocation();
   const items = profile.role === 'admin' ? adminLinks : profile.role === 'merchant' ? merchantLinks : driverLinks;
   const targetRoot = profile.role === 'admin' ? '/admin' : profile.role === 'merchant' ? '/merchant' : '/driver';
@@ -177,7 +148,7 @@ function AppShell({ children, profile }: { children: ReactNode; profile: UserPro
   const nav = () => items.map(([href, Icon, label]) => <Link href={href} className={`nav-item ${displayPath === href ? 'active' : ''}`} key={href} data-testid={`nav-${href.replaceAll('/','-').replace(/^-/, '')}`}><Icon size={17}/><span>{text(locale,label,arabicNav[label]||label)}</span></Link>);
   return <div className="app-shell" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
     <aside className="sidebar"><Link href={targetRoot} className="brand-link"><Brand dark/></Link><div className="workspace-label">{profile.role.toUpperCase()} PORTAL</div><div className="account-context"><span className="account-dot"><Activity size={17}/></span><div><small>{text(locale,'ACTIVE ACCOUNT','الحساب النشط')}</small><strong>{profile.displayName || profile.email}</strong></div></div><nav className="sidebar-nav">{nav()}</nav><div className="sidebar-footer"><span className="demo-pill"><i/> TEST MODE · KWD</span><small>{text(locale,'Approval is always explicit','الموافقة دائماً صريحة')}</small></div></aside>
-    <div className="main-area"><header className="topbar"><div className="topbar-brand"><Link href={targetRoot} className="brand-link"><Brand/></Link><span className="portal-label">{profile.role} portal</span></div><div className="topbar-tools"><span className="status status-pending">TEST MODE</span><LanguageToggle/><span className="user-avatar">{(profile.displayName || 'P').slice(0,1).toUpperCase()}</span><span className="user-name desktop-only">{profile.displayName || profile.email}</span><button className="icon-button" aria-label="Sign out" onClick={()=>signOut({redirectUrl:basePath || '/'})} data-testid="button-sign-out"><LogOut size={17}/></button></div></header><nav className="sidemobile">{nav()}</nav>{children}</div>
+    <div className="main-area"><header className="topbar"><div className="topbar-brand"><Link href={targetRoot} className="brand-link"><Brand/></Link><span className="portal-label">{profile.role} portal</span></div><div className="topbar-tools"><span className="status status-pending">TEST MODE</span><LanguageToggle/><span className="user-avatar">{(profile.displayName || 'P').slice(0,1).toUpperCase()}</span><span className="user-name desktop-only">{profile.displayName || profile.email}</span><button className="icon-button" aria-label="Sign out" onClick={()=>{setSignOutError(false);void signOut().then(()=>setLocation('/')).catch(()=>setSignOutError(true));}} data-testid="button-sign-out"><LogOut size={17}/></button></div></header>{signOutError&&<p className="form-error" role="alert">{text(locale,'Sign-out could not complete. Please retry when the service is available.','تعذر تسجيل الخروج. أعد المحاولة عندما تتوفر الخدمة.')}</p>}<nav className="sidemobile">{nav()}</nav>{children}</div>
   </div>;
 }
 
@@ -196,20 +167,18 @@ function EmptyRows({ loading, error, empty, retry, children }: { loading: boolea
 
 function Onboarding() {
   const { locale } = useLocale();
-  const { user } = useUser();
+  const { account } = useAuth();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
-  const profileQuery = useGetCurrentProfile({query:{queryKey:getGetCurrentProfileQueryKey()}});
   const createProfile = useCreateProfile();
   const [role,setRole] = useState<'driver'|'merchant'>('driver');
-  const [name,setName] = useState(user?.fullName ?? '');
-  useEffect(()=>{ if(profileQuery.data){ setLocation(profileQuery.data.role==='admin'?'/admin':profileQuery.data.role==='merchant'?'/merchant':'/driver'); } },[profileQuery.data,setLocation]);
+  const [name,setName] = useState(account?.displayName ?? '');
   const submit = (e:FormEvent) => {e.preventDefault();createProfile.mutate({data:{role,displayName:name.trim()}},{onSuccess:profile=>{qc.setQueryData(getGetCurrentProfileQueryKey(),profile);setLocation(profile.role==='merchant'?'/merchant':'/driver')}});};
-  return <div className="onboarding-wrap"><form className="onboarding-card panel" onSubmit={submit}><div className="onboarding-mark"><ScanLine size={24}/></div><div className="eyebrow">YOUR PLATEPAY PROFILE</div><h1>{text(locale,'Let’s set up your account.','لنُعدّ حسابك.')}</h1><p>{text(locale,'Choose how you’ll use PlatePay. Your role is stored in your PlatePay profile.','اختر طريقة استخدام بليت باي. سيتم حفظ دورك في ملفك الشخصي.')}</p>{profileQuery.isLoading ? <div className="skeleton" style={{height:150}}/> : <>
+  return <div className="onboarding-wrap"><form className="onboarding-card panel" onSubmit={submit}><div className="onboarding-mark"><ScanLine size={24}/></div><div className="eyebrow">YOUR PLATEPAY PROFILE</div><h1>{text(locale,'Let’s set up your account.','لنُعدّ حسابك.')}</h1><p>{text(locale,'Choose how you’ll use PlatePay. Your role is stored in your PlatePay profile.','اختر طريقة استخدام بليت باي. سيتم حفظ دورك في ملفك الشخصي.')}</p>
     <Field label={text(locale,'Display name','الاسم المعروض')}><input className="input" data-testid="input-display-name" required maxLength={100} value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"/></Field>
     <div className="role-options"><button type="button" className={`role-option ${role==='driver'?'selected':''}`} onClick={()=>setRole('driver')} data-testid="role-driver"><CarFront size={20}/><b>{text(locale,'Driver','سائق')}</b><span>{text(locale,'Register plates and approve each request.','سجّل لوحاتك ووافق على كل طلب.')}</span></button><button type="button" className={`role-option ${role==='merchant'?'selected':''}`} onClick={()=>setRole('merchant')} data-testid="role-merchant"><Store size={20}/><b>{text(locale,'Merchant','تاجر')}</b><span>{text(locale,'Create payment requests for driver review.','أنشئ طلبات دفع لمراجعة السائق.')}</span></button></div>
     <div className="info-note"><ShieldCheck size={16}/>{text(locale,'Administrator access is managed server-side and cannot be selected here.','تُدار صلاحيات الإدارة من الخادم ولا يمكن اختيارها هنا.')}</div><button className="btn btn-primary full-btn" disabled={createProfile.isPending} data-testid="button-create-profile">{createProfile.isPending?'Saving…':text(locale,'Create profile','إنشاء الملف الشخصي')}<ArrowRight size={15}/></button>{createProfile.isError&&<p className="form-error" role="alert">Could not create your profile. Please try again.</p>}
-    </>}</form></div>;
+    </form></div>;
 }
 
 function PortalPage({ profile, section }: { profile: UserProfile; section: string }) {
@@ -413,17 +382,20 @@ function AdminTransactionTable({ query }: { query: any }) {
 }
 
 function ProfileGate({ children }: { children: (profile: UserProfile) => ReactNode }) {
-  const { isLoaded, isSignedIn } = useAuth();
-  const profileQ = useGetCurrentProfile({query:{queryKey:getGetCurrentProfileQueryKey(),enabled:isLoaded&&!!isSignedIn}});
+  const { isLoaded, isSignedIn, error, refresh } = useAuth();
+  const profileQ = useGetCurrentProfile({query:{queryKey:getGetCurrentProfileQueryKey(),enabled:isLoaded&&!!isSignedIn,retry:(count,failure)=>![401,403,404].includes((failure as {status?:number}).status??0)&&count<1}});
   const [loc] = useLocation();
   if(!isLoaded) return <PageLoading/>;
+  if(error) return <QueryError error={error} retry={()=>void refresh()} showHome/>;
   if(!isSignedIn) return <Redirect to="/sign-in"/>;
   if(profileQ.isLoading) return <PageLoading/>;
   if(profileQ.isError) {
     const status=(profileQ.error as any)?.status;
-    if(status===404||status===401) return <Onboarding/>;
+    if(status===401) return <Redirect to="/sign-in"/>;
+    if(status===404) return <Onboarding/>;
     return <div className="content"><QueryError error={profileQ.error} retry={()=>profileQ.refetch()} showHome/></div>;
   }
+  if(loc==='/onboarding'&&profileQ.data) return <Redirect to={profileQ.data.role==='admin'?'/admin':profileQ.data.role==='merchant'?'/merchant':'/driver'}/>;
   const expected=loc.startsWith('/admin')?'admin':loc.startsWith('/merchant')?'merchant':'driver';
   if(profileQ.data?.role!==expected) return <Redirect to={profileQ.data?.role==='admin'?'/admin':profileQ.data?.role==='merchant'?'/merchant':'/driver'}/>;
   return <AppShell profile={profileQ.data}>{children(profileQ.data)}</AppShell>;
@@ -444,10 +416,8 @@ function HomeRoute() {
   return <Landing/>;
 }
 function OnboardingRoute() { return <ProfileGate>{()=> <Onboarding/>}</ProfileGate>; }
-function ClerkRoutes() {
-  const [,setLocation]=useLocation();
-  return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} localization={{signIn:{start:{title:'Welcome back',subtitle:'Sign in to continue to PlatePay'}},signUp:{start:{title:'Create your PlatePay account',subtitle:'Set up your profile after creating an account'}}}} routerPush={to=>setLocation(stripBase(to))} routerReplace={to=>setLocation(stripBase(to),{replace:true})}>
-    <ClerkQueryClientCacheInvalidator/>
+function AppRoutes() {
+  return <AuthProvider>
     <Switch>
       <Route path="/" component={HomeRoute}/>
       <Route path="/sign-in/*?" component={SignInPage}/>
@@ -471,7 +441,7 @@ function ClerkRoutes() {
       <Route path="/admin/audit" component={()=> <Protected section="audit"/>}/>
       <Route><NotFound/></Route>
     </Switch>
-  </ClerkProvider>;
+  </AuthProvider>;
 }
 
 function NotFound() {
@@ -482,7 +452,7 @@ function NotFound() {
 function App() {
   const [locale,setLocale]=useState<Locale>(()=>localStorage.getItem('platepay-locale')==='ar'?'ar':'en');
   const toggle=()=>setLocale(old=>{const next=old==='en'?'ar':'en';localStorage.setItem('platepay-locale',next);return next;});
-  return <QueryClientProvider client={queryClient}><LocaleContext.Provider value={{locale,toggle}}><WouterRouter base={basePath}><ClerkRoutes/></WouterRouter></LocaleContext.Provider></QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}><LocaleContext.Provider value={{locale,toggle}}><WouterRouter base={basePath}><AppRoutes/></WouterRouter></LocaleContext.Provider></QueryClientProvider>;
 }
 
 export default App;

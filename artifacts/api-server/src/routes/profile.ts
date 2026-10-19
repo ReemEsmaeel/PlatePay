@@ -1,4 +1,3 @@
-import { clerkClient } from "@clerk/express";
 import { Router, type IRouter } from "express";
 import mongoose from "mongoose";
 import {
@@ -10,7 +9,6 @@ import {
   UpdateVehicleParams,
 } from "@workspace/api-zod";
 import {
-  AuditLogModel,
   MerchantModel,
   SpendingLimitModel,
   UserModel,
@@ -19,19 +17,18 @@ import {
 } from "../models";
 import {
   requireAppUser,
-  requireClerkSession,
+  requireSession,
   requireRole,
   type PlatePayRequest,
 } from "../middlewares/auth";
 import { normalizePlate } from "../lib/plate";
 import { validate } from "../lib/validation";
-import { isTrustedAdminEmail } from "../lib/adminPolicy";
 
 const router: IRouter = Router();
 
 function profileJson(user: {
   _id: mongoose.Types.ObjectId;
-  clerkUserId: string;
+  authAccountId: mongoose.Types.ObjectId;
   email: string;
   displayName: string;
   role: string;
@@ -40,7 +37,7 @@ function profileJson(user: {
 }) {
   return {
     id: user._id.toString(),
-    clerkUserId: user.clerkUserId,
+    authAccountId: user.authAccountId.toString(),
     email: user.email,
     displayName: user.displayName,
     role: user.role,
@@ -77,28 +74,21 @@ router.get("/auth/me", requireAppUser, async (req, res) => {
   res.json(profileJson(profile));
 });
 
-router.post("/auth/profile", requireClerkSession, async (req, res) => {
+router.post("/auth/profile", requireSession, async (req, res) => {
   const body = validate(CreateProfileBody, req.body, res);
   if (!body) return;
-  const clerkUserId = (req as PlatePayRequest).clerkUserId!;
+  const account = (req as PlatePayRequest).authAccount!;
+  const authAccountId = account._id;
 
   try {
-    const existing = await UserModel.findOne({ clerkUserId });
+    const existing = await UserModel.findOne({ authAccountId });
     if (existing) {
       res.status(409).json({ error: "A PlatePay profile already exists." });
       return;
     }
 
-    const identity = await clerkClient.users.getUser(clerkUserId);
-    const primaryEmail = identity.emailAddresses.find(
-      (item) => item.id === identity.primaryEmailAddressId,
-    );
-    if (!primaryEmail || primaryEmail.verification?.status !== "verified") {
-      res.status(400).json({ error: "Add a verified email to your Clerk account first." });
-      return;
-    }
-    const initialAdmin = isTrustedAdminEmail(primaryEmail);
-    const role = initialAdmin ? "admin" : body.role;
+    // A public signup email is not proof of identity and can never grant admin.
+    const role = body.role;
 
     const session = await mongoose.startSession();
     let created:
@@ -109,27 +99,16 @@ router.post("/auth/profile", requireClerkSession, async (req, res) => {
         const [user] = await UserModel.create(
           [
             {
-              clerkUserId,
-              email: primaryEmail.emailAddress,
+              authAccountId,
+              email: account.email,
               displayName: body.displayName.trim(),
               role,
               status: "active",
-              initialAdminGrantedAt: initialAdmin ? new Date() : null,
             },
           ],
           { session },
         );
         created = user;
-        if (initialAdmin) {
-          await AuditLogModel.create([{
-            actorId: user._id,
-            actorName: user.displayName,
-            action: "admin.initial_access_granted",
-            targetType: "account",
-            targetId: user._id.toString(),
-            details: { source: "owner_configured_verified_email" },
-          }], { session });
-        }
         if (role === "driver") {
           await WalletModel.updateOne(
             { userId: user._id },

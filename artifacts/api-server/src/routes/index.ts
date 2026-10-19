@@ -5,6 +5,7 @@ import merchantRouter from "./merchant";
 import paymentRequestsRouter from "./paymentRequests";
 import walletRouter from "./wallet";
 import adminRouter from "./admin";
+import authRouter from "./auth";
 import { isDatabaseReady } from "../db/mongo";
 
 const router: IRouter = Router();
@@ -17,6 +18,7 @@ router.use((_req, res, next) => {
   }
   next();
 });
+router.use(authRouter);
 router.use(profileRouter);
 router.use(merchantRouter);
 router.use(paymentRequestsRouter);

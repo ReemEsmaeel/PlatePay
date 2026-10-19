@@ -23,6 +23,68 @@ tags:
   - name: admin
     description: Restricted platform administration
 paths:
+  /auth/session:
+    get:
+      operationId: getAuthSession
+      tags: [profile]
+      summary: Get the current local sign-in session
+      responses:
+        "200":
+          description: Session or signed-out state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+  /auth/register:
+    post:
+      operationId: registerAccount
+      tags: [profile]
+      summary: Register a local account and start a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegistrationInput"
+      responses:
+        "201":
+          description: Account registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /auth/login:
+    post:
+      operationId: loginAccount
+      tags: [profile]
+      summary: Sign in with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CredentialsInput"
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /auth/logout:
+    post:
+      operationId: logoutAccount
+      tags: [profile]
+      summary: Revoke the current session and clear its cookie
+      responses:
+        "204":
+          description: Signed out
   /healthz:
     get:
       operationId: healthCheck
@@ -586,6 +648,55 @@ components:
       schema:
         type: string
   schemas:
+    AuthAccount:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+      required: [id, email, displayName]
+    AuthSession:
+      type: object
+      properties:
+        account:
+          anyOf:
+            - $ref: "#/components/schemas/AuthAccount"
+            - type: "null"
+      required: [account]
+    CredentialsInput:
+      type: object
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+      required: [email, password]
+    RegistrationInput:
+      type: object
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 12
+          maxLength: 128
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+      required: [email, password, displayName]
     HealthStatus:
       type: object
       properties:
@@ -625,7 +736,7 @@ components:
       properties:
         id:
           type: string
-        clerkUserId:
+        authAccountId:
           type: string
         email:
           type: string
@@ -638,7 +749,7 @@ components:
         createdAt:
           type: string
           format: date-time
-      required: [id, clerkUserId, email, displayName, role, status, createdAt]
+      required: [id, authAccountId, email, displayName, role, status, createdAt]
     ProfileInput:
       type: object
       properties:

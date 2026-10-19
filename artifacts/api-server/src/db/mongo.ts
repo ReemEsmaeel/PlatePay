@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { logger } from "../lib/logger";
 import { getMongoSocks5Options } from "./mongoSocks5";
+import { AuthAccountModel, AuthRateLimitModel, AuthSessionModel } from "../models/auth";
 import {
   AuditLogModel, MerchantModel, PaymentRequestModel, SpendingLimitModel,
   TransactionModel, UserModel, VehicleModel, WalletEntryModel, WalletModel,
@@ -28,7 +29,16 @@ export async function connectMongoDB() {
   try {
     const connection = await connectionPromise;
     if (!indexesInitialized) {
+      // No user records are deleted. Refuse a silent migration if legacy users exist.
+      const users = await mongoose.connection.db!.listCollections({ name: UserModel.collection.name }).toArray();
+      if (users.length && await UserModel.collection.indexExists("clerkUserId_1")) {
+        if (await UserModel.collection.countDocuments({ clerkUserId: { $exists: true } })) {
+          throw new Error("Existing legacy accounts require an explicit ownership-preserving migration.");
+        }
+        await UserModel.collection.dropIndex("clerkUserId_1");
+      }
       await Promise.all([
+        AuthAccountModel, AuthSessionModel, AuthRateLimitModel,
         UserModel, VehicleModel, MerchantModel, PaymentRequestModel, WalletModel,
         WalletEntryModel, SpendingLimitModel, TransactionModel, AuditLogModel,
       ].map((model) => model.createIndexes()));

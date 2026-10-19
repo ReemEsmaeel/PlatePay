@@ -9,9 +9,11 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
+- `pnpm --filter @workspace/api-server run test:auth` — authentication security regression checks
+- `pnpm --filter @workspace/api-server run admin:grant` — after building, register the owner-designated account and complete a profile, then run this operator-only command; it prompts for the account password without echoing it
 - Required secret: `MONGODB_URI` — MongoDB Atlas URI for PlatePay application data
 - Optional SOCKS5 egress proxy: `MONGODB_SOCKS5_HOST` and `MONGODB_SOCKS5_PORT`; proxy username/password belong in Replit Secrets. Atlas must allowlist the proxy's fixed egress IP.
-- Clerk secrets are provisioned by Replit-managed Clerk.
+- Required secret: `SESSION_SECRET` — at least 32 random characters; used for hashing opaque session tokens and authentication rate-limit keys
 - Stripe setup is paused by the user. Keep PlatePay MongoDB-only; do not add a PostgreSQL Stripe synchronization store. Test wallet top-ups remain unavailable.
 
 ## Stack
@@ -20,7 +22,7 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - Frontend: React + Vite in `artifacts/platepay`
 - API: shared Express 5 server in `artifacts/api-server`
 - PlatePay data: MongoDB Atlas + Mongoose
-- Authentication: currently Replit-managed Clerk; the requested replacement is self-managed email/password authentication in Express and MongoDB, with API-enforced roles.
+- Authentication: built-in email/password registration and sign-in, scrypt password hashes, MongoDB-backed opaque sessions, HttpOnly same-site cookies, and API-enforced roles. No external authentication service.
 - API contract and validation: OpenAPI, Orval, and generated Zod schemas
 - Build: Vite for the frontend; esbuild for the API
 - Intended final deployment target: both the React frontend and Express API together on Vercel, keeping MongoDB Atlas. Do not introduce a separate backend hosting provider without approval.
@@ -37,13 +39,13 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 
 - MongoDB is the source of truth for PlatePay accounts, vehicles, merchant profiles, payment requests, wallets, and audit records; the workspace's PostgreSQL scaffold is not used for PlatePay business data.
 - Preserve TLS and a restricted Atlas allowlist for production. The user prefers free alternatives to a paid proxy; a proxy subscription has not been approved. Development may connect directly through a verified, temporary single-IP `/32` entry. Do not open the database to all IPs as a permanent workaround.
-- Clerk owns sign-in and sessions; the MongoDB profile stores the PlatePay role. Admin privileges must never be self-selected at signup.
-- The authentication target is built-in registration and sign-in, not a separate Clerk account for Vercel. Preserve existing PlatePay records and account ownership during any transition; never link an existing account solely by matching an unverified signup email.
-- Initial admin access is designated through `PLATEPAY_ADMIN_EMAIL`, granted only to its verified primary-email owner, and recorded once so restarts cannot restore revoked privileges.
+- Local authentication accounts own credentials and sessions; separate MongoDB profiles own the PlatePay role. Admin privileges must never be self-selected at signup. Email verification and emailed password recovery are not provided by an external service.
+- Preserve existing PlatePay records and account ownership during transitions; never link an existing account solely by matching an unverified signup email.
+- Initial admin access is designated through `PLATEPAY_ADMIN_EMAIL` and granted only by the operator CLI after proving the account password. It is never granted automatically on signup or startup, and a completed grant cannot restore subsequently revoked privileges.
 - Store KWD amounts as integer fils (1 KWD = 1,000 fils) to avoid floating-point rounding.
 - Plate recognition identifies a vehicle only. A driver must explicitly approve each merchant request before any wallet debit.
 - Plate OCR uses the user-selected Tesseract.js in the browser on a cropped image or still camera capture; do not persist the source photo.
-- Keep the authentication proxy available during database outages, but return explicit HTTP 503 responses for database-backed operations. This preserves sign-in without inventing application data.
+- Public pages stay available during database outages; local authentication, account, and payment operations return explicit HTTP 503 responses rather than inventing application data.
 - Keep API process liveness (`/api/livez`) independent of MongoDB so a deployment can start while the database reconnects; `/api/healthz` remains a database-readiness check and returns 503 until MongoDB and required indexes are ready.
 - Normalize equivalent Arabic/Latin numerals and separators, not guessed cross-script letter transliterations; uncertain OCR must be corrected to the registered plate to avoid matching a different vehicle.
 

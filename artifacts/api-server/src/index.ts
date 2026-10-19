@@ -1,7 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { connectMongoDB } from "./db/mongo";
-import { seedConfiguredAdmin } from "./lib/adminBootstrap";
 
 const rawPort = process.env["PORT"];
 
@@ -20,18 +19,10 @@ if (Number.isNaN(port) || port <= 0) {
 async function connectWithRetry() {
   try {
     await connectMongoDB();
-    try {
-      await seedConfiguredAdmin();
-    } catch (error) {
-      logger.error(
-        { errorType: error instanceof Error ? error.name : "UnknownError" },
-        "Initial admin provisioning could not complete. No new access was granted.",
-      );
-    }
   } catch (error) {
     logger.error(
       { errorType: error instanceof Error ? error.name : "UnknownError" },
-      "MongoDB connection failed. Database routes return 503; authentication proxy remains available.",
+      "MongoDB connection failed. Account and payment routes return 503; public pages remain available.",
     );
     const retry = setTimeout(() => { void connectWithRetry(); }, 30_000);
     retry.unref();

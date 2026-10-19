@@ -5,6 +5,41 @@
  * PlatePay application API
  * OpenAPI spec version: 0.1.0
  */
+export interface AuthAccount {
+  id: string;
+  email: string;
+  displayName: string;
+}
+
+export interface AuthSession {
+  account: AuthAccount | null;
+}
+
+export interface CredentialsInput {
+  /** @maxLength 254 */
+  email: string;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  password: string;
+}
+
+export interface RegistrationInput {
+  /** @maxLength 254 */
+  email: string;
+  /**
+     * @minLength 12
+     * @maxLength 128
+     */
+  password: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  displayName: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -82,7 +117,7 @@ export const TransactionType = {
 
 export interface UserProfile {
   id: string;
-  clerkUserId: string;
+  authAccountId: string;
   email: string;
   displayName: string;
   role: UserRole;

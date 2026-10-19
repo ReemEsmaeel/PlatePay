@@ -1,0 +1,20 @@
+.authform { width: 100%; max-width: 440px; padding: 30px; box-shadow: 0 18px 50px rgba(16,43,58,.08); }
+.authform-mark { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: #e5f6ef; color: #078968; margin-bottom: 18px; }
+.authform h1 { margin: 8px 0 6px; font-size: 26px; line-height: 1.15; letter-spacing: -.05em; color: #102b3a; font-weight: 800; }
+[dir="rtl"].authform h1 { letter-spacing: 0; }
+.authform-sub { margin: 0 0 22px; color: #72828c; font-size: 12px; line-height: 1.6; }
+.authform-fields { border: 0; margin: 0; padding: 0; min-width: 0; }
+.authform-ltr { text-align: left; }
+.authform-pw { position: relative; }
+.authform-pw .input { padding-inline-end: 46px; }
+.authform-eye { position: absolute; inset-inline-end: 5px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 7px; background: transparent; color: #627682; cursor: pointer; }
+.authform-eye:hover { background: #f1faf6; color: #087456; }
+.authform-eye:focus-visible, .authform .table-link:focus-visible, .authform .btn:focus-visible { outline: 2px solid #079875; outline-offset: 2px; }
+.authform-hint { display: block; margin-top: 6px; color: #7d8d97; font-size: 10px; }
+.authform-error { margin: 2px 0 14px; padding: 10px 12px; border: 1px solid #f3cfcb; background: #fff0ef; color: #a52f2a; border-radius: 8px; font-size: 12px; line-height: 1.5; }
+.authform .full-btn { margin-top: 4px; }
+.authform-spin { animation: authform-spin .8s linear infinite; }
+@keyframes authform-spin { to { transform: rotate(360deg); } }
+.authform-switch { margin: 20px 0 0; text-align: center; color: #6c7c87; font-size: 12px; }
+@media (max-width: 760px) { .authform { padding: 22px 18px; } .authform h1 { font-size: 23px; } }
+@media (prefers-reduced-motion: reduce) { .authform-spin, .authform.fade-up { animation: none; } }

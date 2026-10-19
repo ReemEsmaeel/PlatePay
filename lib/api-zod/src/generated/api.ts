@@ -9,6 +9,74 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Get the current local sign-in session
+ */
+export const GetAuthSessionResponse = zod.object({
+  "account": zod.union([zod.object({
+  "id": zod.string(),
+  "email": zod.string().email(),
+  "displayName": zod.string()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Register a local account and start a session
+ */
+export const registerAccountBodyEmailMax = 254;
+
+export const registerAccountBodyPasswordMin = 12;
+export const registerAccountBodyPasswordMax = 128;
+
+export const registerAccountBodyDisplayNameMax = 100;
+
+
+
+export const RegisterAccountBody = zod.object({
+  "email": zod.string().email().max(registerAccountBodyEmailMax),
+  "password": zod.string().min(registerAccountBodyPasswordMin).max(registerAccountBodyPasswordMax),
+  "displayName": zod.string().min(1).max(registerAccountBodyDisplayNameMax)
+})
+
+export const RegisterAccountResponse = zod.object({
+  "account": zod.union([zod.object({
+  "id": zod.string(),
+  "email": zod.string().email(),
+  "displayName": zod.string()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Sign in with email and password
+ */
+export const loginAccountBodyEmailMax = 254;
+
+export const loginAccountBodyPasswordMax = 128;
+
+
+
+export const LoginAccountBody = zod.object({
+  "email": zod.string().email().max(loginAccountBodyEmailMax),
+  "password": zod.string().min(1).max(loginAccountBodyPasswordMax)
+})
+
+export const LoginAccountResponse = zod.object({
+  "account": zod.union([zod.object({
+  "id": zod.string(),
+  "email": zod.string().email(),
+  "displayName": zod.string()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Revoke the current session and clear its cookie
+ */
+export const LogoutAccountResponse = zod.void()
+
+
+/**
  * Returns server health status
  * @summary Health check
  */
@@ -22,7 +90,7 @@ export const HealthCheckResponse = zod.object({
  */
 export const GetCurrentProfileResponse = zod.object({
   "id": zod.string(),
-  "clerkUserId": zod.string(),
+  "authAccountId": zod.string(),
   "email": zod.string(),
   "displayName": zod.string(),
   "role": zod.enum(['driver', 'merchant', 'admin']),
@@ -45,7 +113,7 @@ export const CreateProfileBody = zod.object({
 
 export const CreateProfileResponse = zod.object({
   "id": zod.string(),
-  "clerkUserId": zod.string(),
+  "authAccountId": zod.string(),
   "email": zod.string(),
   "displayName": zod.string(),
   "role": zod.enum(['driver', 'merchant', 'admin']),

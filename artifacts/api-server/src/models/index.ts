@@ -5,7 +5,7 @@ const accountStatuses = ["active", "suspended"] as const;
 
 const userSchema = new Schema(
   {
-    clerkUserId: { type: String, required: true, unique: true, index: true },
+    authAccountId: { type: Schema.Types.ObjectId, ref: "PlatePayAuthAccount", required: true, unique: true, index: true },
     email: { type: String, required: true, lowercase: true, trim: true },
     displayName: { type: String, required: true, trim: true, maxlength: 100 },
     role: { type: String, enum: ["driver", "merchant", "admin"], required: true },

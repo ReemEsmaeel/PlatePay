@@ -13,6 +13,7 @@ import { validate } from "../lib/validation";
 import { requireAppUser, requireRole, type PlatePayRequest } from "../middlewares/auth";
 import { writeAuditLog } from "../lib/audit";
 import { AuditLogModel, MerchantModel, PaymentRequestModel, TransactionModel, UserModel, VehicleModel } from "../models";
+import { AuthSessionModel } from "../models/auth";
 
 const router: IRouter = Router();
 router.use("/admin", requireAppUser, requireRole("admin"));
@@ -62,6 +63,9 @@ router.patch("/admin/accounts/:accountId/status", async (req, res) => {
   }
   account.status = body.status;
   await account.save();
+  if (body.status === "suspended") {
+    await AuthSessionModel.deleteMany({ accountId: account.authAccountId });
+  }
   await writeAuditLog({ actorId: actor._id, actorName: actor.displayName, action: "account.status_changed", targetType: "account", targetId: account._id.toString(), details: { status: body.status } });
   const vehicles = await VehicleModel.find({ userId: account._id }).lean();
   res.json({ id: account._id.toString(), displayName: account.displayName, email: account.email, role: account.role, status: account.status, plateNumbers: vehicles.map((v) => v.plateNumber), createdAt: account.createdAt.toISOString() });
