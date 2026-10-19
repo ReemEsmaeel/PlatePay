@@ -42,6 +42,7 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - Plate recognition identifies a vehicle only. A driver must explicitly approve each merchant request before any wallet debit.
 - Plate OCR uses the user-selected Tesseract.js in the browser on a cropped image or still camera capture; do not persist the source photo.
 - Keep the authentication proxy available during database outages, but return explicit HTTP 503 responses for database-backed operations. This preserves sign-in without inventing application data.
+- Keep API process liveness (`/api/livez`) independent of MongoDB so a deployment can start while the database reconnects; `/api/healthz` remains a database-readiness check and returns 503 until MongoDB and required indexes are ready.
 - Normalize equivalent Arabic/Latin numerals and separators, not guessed cross-script letter transliterations; uncertain OCR must be corrected to the registered plate to avoid matching a different vehicle.
 
 ## Product

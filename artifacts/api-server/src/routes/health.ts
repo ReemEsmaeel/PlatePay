@@ -4,6 +4,10 @@ import { isDatabaseReady } from "../db/mongo";
 
 const router: IRouter = Router();
 
+router.get("/livez", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 router.get("/healthz", (_req, res) => {
   const connected = isDatabaseReady();
   const data = HealthCheckResponse.parse({ status: connected ? "ok" : "database_unavailable" });
