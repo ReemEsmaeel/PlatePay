@@ -16,7 +16,7 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - Required secret: `MONGODB_URI` — MongoDB Atlas URI for PlatePay application data
 - Optional SOCKS5 egress proxy: `MONGODB_SOCKS5_HOST` and `MONGODB_SOCKS5_PORT`; proxy username/password belong in Replit Secrets. Atlas must allowlist the proxy's fixed egress IP.
 - Required secret: `SESSION_SECRET` — at least 32 random characters; used for hashing opaque session tokens and authentication rate-limit keys
-- Stripe setup is paused by the user. Keep PlatePay MongoDB-only; do not add a PostgreSQL Stripe synchronization store. Test wallet top-ups remain unavailable.
+- The user has resumed Stripe test-checkout setup. Keep PlatePay application data in MongoDB; the managed Stripe integration requires a separate PostgreSQL synchronization store, not a migration of application records. Wallet top-ups remain unavailable until Stripe is connected and verified.
 
 ## Stack
 
