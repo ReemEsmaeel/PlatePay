@@ -62,3 +62,24 @@ test('an already framed plate is not clipped or stretched at default zoom', () =
   const crop = plateCrop(430, 236, 1);
   assert.deepEqual(crop, { x: 0, y: 0, width: 430, height: 236 });
 });
+
+test('crop position can follow a plate anywhere in a full-car photo', () => {
+  for (const [width, height] of [[1200, 800], [3024, 4032]]) {
+    for (const zoom of [1.2, 2.5, 4]) {
+      const crop = plateCrop(width, height, zoom, 1, 1);
+      assert.ok(crop.x >= 0 && crop.y >= 0);
+      assert.ok(crop.x + crop.width <= width + 0.001);
+      assert.ok(crop.y + crop.height <= height + 0.001);
+      assert.deepEqual(plateCrop(width, height, zoom, 5, -4), {
+        ...plateCrop(width, height, zoom, 1, 0), y: 0,
+      });
+      assert.deepEqual(plateCrop(width, height, zoom, 0.5, 0.5), {
+        x: (width - plateCrop(width, height, zoom).width) / 2,
+        y: (height - plateCrop(width, height, zoom).height) / 2,
+        width: plateCrop(width, height, zoom).width,
+        height: plateCrop(width, height, zoom).height,
+      });
+    }
+  }
+  assert.throws(() => plateCrop(1200, 800, 2, Number.NaN, 0.5));
+});

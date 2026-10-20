@@ -6,8 +6,8 @@ export const PLATE_REGIONS = {
   number: { x: 0.132, y: 0.452, width: 0.837, height: 0.494 },
 } as const;
 
-export function plateCrop(width: number, height: number, zoom: number) {
-  if (!(width > 0 && height > 0 && Number.isFinite(zoom))) {
+export function plateCrop(width: number, height: number, zoom: number, centerX = 0.5, centerY = 0.5) {
+  if (!(width > 0 && height > 0 && Number.isFinite(zoom) && Number.isFinite(centerX) && Number.isFinite(centerY))) {
     throw new Error('Invalid image dimensions');
   }
   const ratio = width / height;
@@ -16,7 +16,12 @@ export function plateCrop(width: number, height: number, zoom: number) {
   const aspect = ratio >= 1.5 && ratio <= 2.3 ? ratio : PLATE_ASPECT;
   const cropWidth = Math.min(width, height * aspect) / Math.max(1, zoom);
   const cropHeight = cropWidth / aspect;
-  return { x: (width - cropWidth) / 2, y: (height - cropHeight) / 2, width: cropWidth, height: cropHeight };
+  const clamp = (value: number) => Math.min(1, Math.max(0, value));
+  return {
+    x: (width - cropWidth) * clamp(centerX),
+    y: (height - cropHeight) * clamp(centerY),
+    width: cropWidth, height: cropHeight,
+  };
 }
 
 export function regionRectangle(name: keyof typeof PLATE_REGIONS, width: number, height: number) {

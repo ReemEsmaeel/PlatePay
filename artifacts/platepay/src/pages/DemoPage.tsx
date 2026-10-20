@@ -206,6 +206,8 @@ function MerchantScan({ t, busy, onSend }: { t: (en: string, ar: string) => stri
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [isSample, setIsSample] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [centerX, setCenterX] = useState(0.5);
+  const [centerY, setCenterY] = useState(0.5);
   const [plate, setPlate] = useState('');
   const [reviewed, setReviewed] = useState(false);
   const [ocr, setOcr] = useState<{ status: 'idle' | 'reading' | 'read' | 'low' | 'error'; confidence?: number; message?: string }>({ status: 'idle' });
@@ -215,14 +217,14 @@ function MerchantScan({ t, busy, onSend }: { t: (en: string, ar: string) => stri
   useEffect(() => () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); }, [sourceUrl]);
   useEffect(() => () => { token.current++; }, []);
 
-  const reset = () => { token.current++; setFile(null); setSourceUrl(null); setIsSample(false); setZoom(1); setPlate(''); setReviewed(false); setOcr({ status: 'idle' }); };
+  const reset = () => { token.current++; setFile(null); setSourceUrl(null); setIsSample(false); setZoom(1); setCenterX(0.5); setCenterY(0.5); setPlate(''); setReviewed(false); setOcr({ status: 'idle' }); };
 
   const recognize = async (f: File, z: number) => {
     const my = ++token.current;
     setOcr({ status: 'reading' }); setReviewed(false); setPlate('');
     try {
       const { readKuwaitPlate } = await import('../lib/read-kuwait-plate');
-      const result = await readKuwaitPlate(f, z);
+      const result = await readKuwaitPlate(f, z, centerX, centerY);
       if (my !== token.current) return;
       if (result.plate) { setPlate(result.plate); setOcr({ status: 'read', confidence: result.confidence }); }
       else setOcr({ status: 'low', confidence: result.confidence });
@@ -285,10 +287,15 @@ function MerchantScan({ t, busy, onSend }: { t: (en: string, ar: string) => stri
           <input ref={inputRef} type="file" accept="image/*" hidden onChange={onUpload} data-testid="input-demo-photo"/>
         </div>
         {file && <>
-          <div className="demo-crop"><PlatePhotoPreview file={file} zoom={zoom}/></div>
+          <div className="demo-crop"><PlatePhotoPreview file={file} zoom={zoom} centerX={centerX} centerY={centerY}/></div>
           {!isSample && <div className="crop-controls">
-            <label>{t('Zoom', 'التكبير')}<input type="range" min={1} max={4} step={0.1} value={zoom} onChange={e => { token.current++; setOcr({ status: 'idle' }); setZoom(Number(e.target.value)); }} aria-label={t('Plate crop zoom', 'تكبير قص اللوحة')} data-testid="input-demo-zoom"/></label>
+            <label>{t('Zoom', 'التكبير')}<input type="range" min={1} max={4} step={0.1} value={zoom} onChange={e => { token.current++; setOcr({ status: 'idle' }); setPlate(''); setReviewed(false); setZoom(Number(e.target.value)); }} aria-label={t('Plate crop zoom', 'تكبير قص اللوحة')} data-testid="input-demo-zoom"/></label>
             <button className="btn btn-dark" disabled={ocr.status === 'reading'} onClick={() => recognize(file, zoom)} data-testid="button-demo-recognize"><ScanLine size={14}/>{t('Read plate', 'اقرأ اللوحة')}</button>
+          </div>}
+          {!isSample && <div className="demo-align-controls" aria-label={t('Align the plate in the crop', 'وسّط اللوحة في القص')}>
+            <label>{t('Horizontal position', 'الموضع الأفقي')}<input type="range" min="0" max="1" step="0.01" value={centerX} onChange={e => { token.current++; setOcr({ status: 'idle' }); setPlate(''); setReviewed(false); setCenterX(Number(e.target.value)); }} aria-label={t('Horizontal plate position', 'الموضع الأفقي للوحة')} data-testid="input-demo-center-x"/></label>
+            <label>{t('Vertical position', 'الموضع العمودي')}<input type="range" min="0" max="1" step="0.01" value={centerY} onChange={e => { token.current++; setOcr({ status: 'idle' }); setPlate(''); setReviewed(false); setCenterY(Number(e.target.value)); }} aria-label={t('Vertical plate position', 'الموضع العمودي للوحة')} data-testid="input-demo-center-y"/></label>
+            <small>{t('Zoom in, then slide to frame the plate and both number groups.', 'كبّر الصورة ثم حرّك المؤشرات لضبط اللوحة ومجموعتي الأرقام.')}</small>
           </div>}
           <div className="demo-hint"><Info size={15}/>{isSample ? t('Sample only: the plate area is cut from a known square of the illustration, then read by the same OCR.', 'للعينة فقط: تُقص منطقة اللوحة من مربع معروف في الرسم ثم تُقرأ بنفس أداة التعرّف.') : t('Full car photos rarely read well. Zoom until the plate fills the frame and the series and number sit inside the two outlines.', 'نادراً ما تُقرأ صور السيارة الكاملة جيداً. كبّر حتى تملأ اللوحة الإطار ويقع الرمز والرقم داخل الإطارين.')}</div>
           <div className="demo-actions"><button className="table-link" onClick={reset} data-testid="button-demo-clear-photo">{t('Choose a different image', 'اختر صورة أخرى')}</button></div>

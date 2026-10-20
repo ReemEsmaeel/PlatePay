@@ -1,6 +1,6 @@
 import { plateCrop } from './kuwait-plate';
 
-export async function preparePlateImage(file: File, zoom: number) {
+export async function preparePlateImage(file: File, zoom: number, centerX = 0.5, centerY = 0.5) {
   const url = URL.createObjectURL(file);
   try {
     const image = new Image();
@@ -9,7 +9,7 @@ export async function preparePlateImage(file: File, zoom: number) {
       image.onerror = () => reject(new Error('Image unavailable'));
       image.src = url;
     });
-    const crop = plateCrop(image.naturalWidth, image.naturalHeight, zoom);
+    const crop = plateCrop(image.naturalWidth, image.naturalHeight, zoom, centerX, centerY);
     const canvas = document.createElement('canvas');
     // Integer upscaling keeps small stencil digits intact; bound large photos.
     const scale = crop.width < 1280 ? Math.min(4, Math.ceil(1280 / crop.width)) : 1280 / crop.width;

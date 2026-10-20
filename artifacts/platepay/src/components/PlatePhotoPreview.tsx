@@ -2,12 +2,12 @@ import { useEffect, useRef } from 'react';
 import { PLATE_REGIONS, regionRectangle } from '../lib/kuwait-plate';
 import { preparePlateImage } from '../lib/plate-image';
 
-export function PlatePhotoPreview({ file, zoom }: { file: File; zoom: number }) {
+export function PlatePhotoPreview({ file, zoom, centerX = 0.5, centerY = 0.5 }: { file: File; zoom: number; centerX?: number; centerY?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     let cancelled = false;
     // Same crop as recognition, not a visually zoomed image with different bounds.
-    void preparePlateImage(file, zoom).then(image => {
+    void preparePlateImage(file, zoom, centerX, centerY).then(image => {
       if (cancelled || !ref.current) return;
       const canvas = ref.current;
       canvas.width = image.width;
@@ -29,6 +29,6 @@ export function PlatePhotoPreview({ file, zoom }: { file: File; zoom: number }) 
       }
     });
     return () => { cancelled = true; };
-  }, [file, zoom]);
+  }, [file, zoom, centerX, centerY]);
   return <canvas ref={ref} role="img" aria-label="Exact Kuwait plate crop. Align the series and registration number inside the two outlined areas." style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }}/>;
 }

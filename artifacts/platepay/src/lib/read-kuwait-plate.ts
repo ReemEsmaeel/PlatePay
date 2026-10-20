@@ -2,8 +2,8 @@ import { createWorker, PSM } from 'tesseract.js';
 import { interpretKuwaitPlate, regionRectangle } from './kuwait-plate';
 import { preparePlateImage } from './plate-image';
 
-export async function readKuwaitPlate(file: File, zoom: number) {
-  const canvas = await preparePlateImage(file, zoom);
+export async function readKuwaitPlate(file: File, zoom: number, centerX = 0.5, centerY = 0.5) {
+  const canvas = await preparePlateImage(file, zoom, centerX, centerY);
   // One language model instead of mixed Arabic/English country-label recognition.
   const worker = await createWorker('eng');
   try {

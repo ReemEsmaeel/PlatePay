@@ -74,11 +74,11 @@ demoRouter.post("/demo/start", async (req, res) => {
       const accounts = await AuthAccountModel.create([
         { email: `demo-driver-${scenario}@platepay.example`, displayName: "Demo Driver", passwordHash, demoScenarioId: scenario },
         { email: `demo-merchant-${scenario}@platepay.example`, displayName: "Demo Merchant", passwordHash, demoScenarioId: scenario },
-      ], { session: transaction });
+      ], { session: transaction, ordered: true });
       const users = await UserModel.create(accounts.map((created, index) => ({
         authAccountId: created._id, email: created.email, displayName: created.displayName,
         role: index === 0 ? "driver" : "merchant", status: "active", demoScenarioId: scenario,
-      })), { session: transaction });
+      })), { session: transaction, ordered: true });
       const driver = users[0]!, merchantUser = users[1]!;
       await VehicleModel.create([{
         userId: driver._id, plateNumber: "1234567",
