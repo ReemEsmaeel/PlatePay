@@ -2,6 +2,7 @@ import { useContext, useEffect, useRef, useState, createContext, type FormEvent,
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { AuthForm } from './auth/AuthForm';
+import { getPortalDataNeeds, shouldRetryQuery } from './lib/loading-policy';
 import { Route, Switch, Link, Redirect, Router as WouterRouter, useLocation } from 'wouter';
 import {
   useHealthCheck, useGetCurrentProfile, useCreateProfile, useListVehicles, useCreateVehicle,
@@ -26,7 +27,11 @@ import {
   Sparkles, Store, WalletCards, X, Languages, Search, UserRound, Upload, ReceiptText, CircleAlert,
 } from 'lucide-react';
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
+const queryClient = new QueryClient({ defaultOptions: { queries: {
+  retry: shouldRetryQuery,
+  staleTime: 15_000,
+  refetchOnWindowFocus: true,
+} } });
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 function stripBase(path: string) { return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path; }
 
@@ -190,19 +195,20 @@ function PortalPage({ profile, section }: { profile: UserProfile; section: strin
   const admin = profile.role === 'admin';
   const titleFor = section==='vehicles'?'Vehicles':section==='wallet'?'Wallet':section==='requests'?'Pending requests':section==='limits'?'Spending limits':section==='transactions'?'Transactions & receipts':section==='new-request'?'New payment request':section==='history'?'Request history':section==='profile'?'Business profile':section==='accounts'?'Accounts':section==='merchants'?'Merchant verification':section==='admin-transactions'?'Platform transactions':section==='audit'?'Audit log':'Overview';
 
-  const vehicleQ = useListVehicles({query:{queryKey:getListVehiclesQueryKey(),enabled:driver}});
-  const walletQ = useGetWallet({query:{queryKey:getGetWalletQueryKey(),enabled:driver,refetchInterval:5000,refetchOnWindowFocus:true}});
-  const requestQ = useListPaymentRequests(undefined,{query:{queryKey:getListPaymentRequestsQueryKey(),enabled:driver||merchant,refetchInterval:5000}});
-  const limitQ = useGetSpendingLimits({query:{queryKey:getGetSpendingLimitsQueryKey(),enabled:driver}});
-  const transactionQ = useListTransactions(undefined,{query:{queryKey:getListTransactionsQueryKey(),enabled:driver||merchant,refetchOnWindowFocus:true}});
-  const merchantProfileQ = useGetMerchantProfile({query:{queryKey:getGetMerchantProfileQueryKey(),enabled:merchant}});
-  const merchantDashQ = useGetMerchantDashboard({query:{queryKey:getGetMerchantDashboardQueryKey(),enabled:merchant}});
-  const servicesQ = useListServices(undefined,{query:{queryKey:getListServicesQueryKey(),enabled:merchant}});
-  const adminOverviewQ = useGetAdminOverview({query:{queryKey:getGetAdminOverviewQueryKey(),enabled:admin}});
-  const accountsQ = useListAdminAccounts(undefined,{query:{queryKey:getListAdminAccountsQueryKey(),enabled:admin}});
-  const merchantsQ = useListAdminMerchants(undefined,{query:{queryKey:getListAdminMerchantsQueryKey(),enabled:admin}});
-  const adminTransactionsQ = useListAdminTransactions(undefined,{query:{queryKey:getListAdminTransactionsQueryKey(),enabled:admin}});
-  const auditQ = useListAdminAuditLogs({query:{queryKey:getListAdminAuditLogsQueryKey(),enabled:admin}});
+  const needs = getPortalDataNeeds(profile.role, section);
+  const vehicleQ = useListVehicles({query:{queryKey:getListVehiclesQueryKey(),enabled:needs.vehicles}});
+  const walletQ = useGetWallet({query:{queryKey:getGetWalletQueryKey(),enabled:needs.wallet,refetchInterval:needs.wallet?5000:false}});
+  const requestQ = useListPaymentRequests(undefined,{query:{queryKey:getListPaymentRequestsQueryKey(),enabled:needs.requests,refetchInterval:needs.requests?5000:false}});
+  const limitQ = useGetSpendingLimits({query:{queryKey:getGetSpendingLimitsQueryKey(),enabled:needs.limits}});
+  const transactionQ = useListTransactions(undefined,{query:{queryKey:getListTransactionsQueryKey(),enabled:needs.transactions}});
+  const merchantProfileQ = useGetMerchantProfile({query:{queryKey:getGetMerchantProfileQueryKey(),enabled:needs.merchantProfile}});
+  const merchantDashQ = useGetMerchantDashboard({query:{queryKey:getGetMerchantDashboardQueryKey(),enabled:needs.merchantDashboard}});
+  const servicesQ = useListServices(undefined,{query:{queryKey:getListServicesQueryKey(),enabled:needs.services}});
+  const adminOverviewQ = useGetAdminOverview({query:{queryKey:getGetAdminOverviewQueryKey(),enabled:needs.adminOverview}});
+  const accountsQ = useListAdminAccounts(undefined,{query:{queryKey:getListAdminAccountsQueryKey(),enabled:needs.accounts}});
+  const merchantsQ = useListAdminMerchants(undefined,{query:{queryKey:getListAdminMerchantsQueryKey(),enabled:needs.merchants}});
+  const adminTransactionsQ = useListAdminTransactions(undefined,{query:{queryKey:getListAdminTransactionsQueryKey(),enabled:needs.adminTransactions}});
+  const auditQ = useListAdminAuditLogs({query:{queryKey:getListAdminAuditLogsQueryKey(),enabled:needs.audit}});
   const createVehicle = useCreateVehicle();
   const updateVehicle = useUpdateVehicle();
   const deleteVehicle = useDeleteVehicle();
@@ -241,7 +247,10 @@ function PortalPage({ profile, section }: { profile: UserProfile; section: strin
   },[cameraOn]);
   useEffect(()=>{ if(limitQ.data){setDailyCap((limitQ.data.dailyLimitFils/1000).toFixed(3));setTransactionCap((limitQ.data.perTransactionLimitFils/1000).toFixed(3));}},[limitQ.data?.dailyLimitFils,limitQ.data?.perTransactionLimitFils]);
   const categoryOptions: ServiceCategory[] = ['drive_thru','fuel','parking','car_wash','other'];
-  const retry = ()=>{[vehicleQ,walletQ,requestQ,limitQ,transactionQ,merchantProfileQ,merchantDashQ,servicesQ,adminOverviewQ,accountsQ,merchantsQ,adminTransactionsQ,auditQ].forEach(q=>q.refetch())};
+  const retry = ()=>{
+    const queries = {vehicles:vehicleQ,wallet:walletQ,requests:requestQ,limits:limitQ,transactions:transactionQ,merchantProfile:merchantProfileQ,merchantDashboard:merchantDashQ,services:servicesQ,adminOverview:adminOverviewQ,accounts:accountsQ,merchants:merchantsQ,adminTransactions:adminTransactionsQ,audit:auditQ};
+    (Object.keys(queries) as (keyof typeof queries)[]).forEach(key=>{if(needs[key]) void queries[key].refetch();});
+  };
   const callOcr = async (file:File, zoom:number) => {
     setOcrStatus('Reading the plate…');
     try {
@@ -383,7 +392,7 @@ function AdminTransactionTable({ query }: { query: any }) {
 
 function ProfileGate({ children }: { children: (profile: UserProfile) => ReactNode }) {
   const { isLoaded, isSignedIn, error, refresh } = useAuth();
-  const profileQ = useGetCurrentProfile({query:{queryKey:getGetCurrentProfileQueryKey(),enabled:isLoaded&&!!isSignedIn,retry:(count,failure)=>![401,403,404].includes((failure as {status?:number}).status??0)&&count<1}});
+  const profileQ = useGetCurrentProfile({query:{queryKey:getGetCurrentProfileQueryKey(),enabled:isLoaded&&!!isSignedIn,staleTime:30_000,retry:shouldRetryQuery}});
   const [loc] = useLocation();
   if(!isLoaded) return <PageLoading/>;
   if(error) return <QueryError error={error} retry={()=>void refresh()} showHome/>;
@@ -406,7 +415,7 @@ function Protected({ section }: { section: string }) {
 }
 function HomeRoute() {
   const {isLoaded,isSignedIn}=useAuth();
-  const profile=useGetCurrentProfile({query:{queryKey:getGetCurrentProfileQueryKey(),enabled:isLoaded&&!!isSignedIn}});
+  const profile=useGetCurrentProfile({query:{queryKey:getGetCurrentProfileQueryKey(),enabled:isLoaded&&!!isSignedIn,staleTime:30_000}});
   if(isLoaded&&isSignedIn&&profile.isLoading) return <PageLoading/>;
   if(isLoaded&&isSignedIn&&profile.isError) {
     if((profile.error as any)?.status===404) return <Redirect to="/onboarding"/>;

@@ -60,6 +60,11 @@ export default defineConfig({
     dedupe: ['react', 'react-dom'],
   },
   root: path.resolve(import.meta.dirname),
+  optimizeDeps: {
+    // Linked workspace packages otherwise reach the browser as a chain of
+    // unbundled source modules, including development source maps.
+    include: ['@workspace/api-client-react'],
+  },
   build: {
     outDir: path.resolve(import.meta.dirname, 'dist/public'),
     emptyOutDir: true,
