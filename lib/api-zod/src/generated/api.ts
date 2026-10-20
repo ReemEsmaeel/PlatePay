@@ -25,7 +25,7 @@ export const GetAuthSessionResponse = zod.object({
  */
 export const registerAccountBodyEmailMax = 254;
 
-export const registerAccountBodyPasswordMin = 12;
+export const registerAccountBodyPasswordMin = 8;
 export const registerAccountBodyPasswordMax = 128;
 
 export const registerAccountBodyDisplayNameMax = 100;

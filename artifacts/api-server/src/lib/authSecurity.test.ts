@@ -22,6 +22,10 @@ test("signup validates credentials and refuses client-chosen privilege fields", 
   const input = { email: "auth-test@example.invalid", displayName: "Auth test", password: "A secure demo passphrase!" };
   assert.equal(RegisterAccountBody.strict().safeParse(input).success, true);
   assert.equal(RegisterAccountBody.strict().safeParse({ ...input, password: "short" }).success, false);
+  assert.equal(RegisterAccountBody.strict().safeParse({ ...input, password: "x".repeat(7) }).success, false);
+  assert.equal(RegisterAccountBody.strict().safeParse({ ...input, password: "x".repeat(8) }).success, true);
+  assert.equal(RegisterAccountBody.strict().safeParse({ ...input, password: "x".repeat(128) }).success, true);
+  assert.equal(RegisterAccountBody.strict().safeParse({ ...input, password: "x".repeat(129) }).success, false);
   assert.equal(RegisterAccountBody.strict().safeParse({ ...input, email: "invalid" }).success, false);
   assert.equal(RegisterAccountBody.strict().safeParse({ ...input, role: "admin" }).success, false);
   assert.equal(LoginAccountBody.strict().safeParse({ email: input.email, password: "x".repeat(129) }).success, false);

@@ -37,7 +37,7 @@ export function AuthForm({ mode, locale, onSubmit }: AuthFormProps) {
     if (!EMAIL_RE.test(email.trim())) return t(locale, 'Enter a valid email address.', 'أدخل بريدًا إلكترونيًا صالحًا.');
     if (!password) return t(locale, 'Enter your password.', 'أدخل كلمة المرور.');
     if (isSignUp) {
-      if (password.length < 12 || password.length > 128) return t(locale, 'Password must be 12 to 128 characters.', 'يجب أن تتكون كلمة المرور من 12 إلى 128 حرفًا.');
+      if (password.length < 8 || password.length > 128) return t(locale, 'Password must be 8 to 128 characters.', 'يجب أن تتكون كلمة المرور من 8 إلى 128 حرفًا.');
       if (password !== confirm) return t(locale, 'Passwords do not match.', 'كلمتا المرور غير متطابقتين.');
     } else if (password.length > 128) {
       return t(locale, 'Password must be at most 128 characters.', 'يجب ألا تتجاوز كلمة المرور 128 حرفًا.');
@@ -92,7 +92,7 @@ export function AuthForm({ mode, locale, onSubmit }: AuthFormProps) {
           <div className="form-field">
             <label className="field-label" htmlFor="auth-password">{t(locale, 'Password', 'كلمة المرور')}</label>
             <div className="authform-pw">
-              <input id="auth-password" className="input" type={pwType} dir="ltr" required minLength={isSignUp ? 12 : undefined} maxLength={128}
+              <input id="auth-password" className="input" type={pwType} dir="ltr" required minLength={isSignUp ? 8 : undefined} maxLength={128}
                 autoComplete={isSignUp ? 'new-password' : 'current-password'} aria-describedby={isSignUp ? 'auth-pw-hint' : undefined}
                 value={password} onChange={e => setPassword(e.target.value)} data-testid="input-auth-password" />
               <button type="button" className="authform-eye" onClick={() => setShow(s => !s)} aria-label={toggleLabel}
@@ -100,7 +100,7 @@ export function AuthForm({ mode, locale, onSubmit }: AuthFormProps) {
                 {show ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
               </button>
             </div>
-            {isSignUp && <small id="auth-pw-hint" className="authform-hint">{t(locale, '12 to 128 characters.', 'من 12 إلى 128 حرفًا.')}</small>}
+            {isSignUp && <small id="auth-pw-hint" className="authform-hint">{t(locale, '8 to 128 characters.', 'من 8 إلى 128 حرفًا.')}</small>}
           </div>
           {isSignUp && (
             <div className="form-field">
