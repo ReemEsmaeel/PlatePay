@@ -4,6 +4,7 @@ const accountSchema = new Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true, maxlength: 254 },
   displayName: { type: String, required: true, trim: true, maxlength: 100 },
   passwordHash: { type: String, required: true, select: false },
+  demoScenarioId: { type: String, default: null },
 }, { timestamps: true, versionKey: false });
 
 const sessionSchema = new Schema({

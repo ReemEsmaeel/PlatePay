@@ -11,6 +11,7 @@ export interface AppUser {
   displayName: string;
   role: AppRole;
   status: "active" | "suspended";
+  demoScenarioId?: string | null;
 }
 export interface PlatePayRequest extends Request {
   authAccount?: { _id: Types.ObjectId; email: string; displayName: string };

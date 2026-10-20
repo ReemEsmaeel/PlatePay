@@ -10,6 +10,7 @@
     "admin:grant": "node ./dist/grant-admin.mjs",
     "test:auth": "esbuild src/lib/authSecurity.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/platepay-auth-tests.cjs --log-level=warning && node --test /tmp/platepay-auth-tests.cjs",
     "test:wallet": "esbuild src/lib/walletTopUps.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/platepay-wallet-tests.cjs --log-level=warning && node --test /tmp/platepay-wallet-tests.cjs",
+    "test:demo": "esbuild src/lib/demoIsolation.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/platepay-demo-tests.cjs --log-level=warning && node --test /tmp/platepay-demo-tests.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

@@ -10,7 +10,7 @@ import {
   RejectPaymentRequestParams,
 } from "@workspace/api-zod";
 import { distanceMeters, kuwaitDateKey } from "../lib/geo";
-import { normalizePlate } from "../lib/plate";
+import { plateForScenario } from "../lib/plate";
 import { validate } from "../lib/validation";
 import {
   requireAppUser,
@@ -150,7 +150,7 @@ router.post(
       return;
     }
 
-    const normalizedPlate = normalizePlate(body.plateNumber);
+    const normalizedPlate = plateForScenario(body.plateNumber, user.demoScenarioId);
     const vehicle = await VehicleModel.findOne({
       normalizedPlate,
       status: "active",

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState, createContext, type FormEvent, type ReactNode } from 'react';
+import { useContext, useEffect, useRef, useState, createContext, lazy, Suspense, type FormEvent, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { AuthForm } from './auth/AuthForm';
@@ -32,6 +32,7 @@ import {
 
 import { stripPlateWhitespace } from './lib/kuwait-plate';
 
+const DemoPage = lazy(() => import('./pages/DemoPage'));
 const queryClient = new QueryClient({ defaultOptions: { queries: {
   retry: shouldRetryQuery,
   staleTime: 15_000,
@@ -97,12 +98,31 @@ function AuthFrame({ children }: { children: ReactNode }) {
 function Landing({ accountError, retryAccount }: { accountError?: unknown; retryAccount?: () => void } = {}) {
   const { locale } = useLocale();
   const health = useHealthCheck();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, refresh } = useAuth();
+  const [demoBusy, setDemoBusy] = useState(false);
+  const [demoError, setDemoError] = useState<string | null>(null);
   const [loc, setLoc] = useLocation();
   const checkState = health.isLoading ? 'Checking API' : health.isError ? 'API unavailable' : `API ${health.data?.status ?? 'connected'}`;
+  const tryDemo = async () => {
+    if (demoBusy) return;
+    setDemoBusy(true); setDemoError(null);
+    try {
+      const { startDemo } = await import('./lib/demo-api');
+      await startDemo();
+      await refresh();
+      setLoc('/demo');
+    } catch (error) {
+      setDemoError(error instanceof Error ? error.message : 'The demo could not start. Please retry.');
+    } finally { setDemoBusy(false); }
+  };
   return <div dir={locale === 'ar' ? 'rtl' : 'ltr'}>
     <header className="landing-nav"><Link href="/" className="brand-link"><Brand/></Link><nav className="landing-links"><a href="#how">{text(locale,'How it works','كيف تعمل')}</a><a href="#services">{text(locale,'For drivers & merchants','للسائقين والتجار')}</a></nav><div className="landing-actions"><LanguageToggle/><button className="btn btn-quiet signin-link" data-testid="link-sign-in" onClick={() => setLoc(isSignedIn ? '/onboarding' : '/sign-in')}>{isSignedIn ? text(locale,'Open portal','افتح البوابة') : text(locale,'Sign in','دخول')}</button><button className="btn btn-primary" data-testid="link-sign-up" onClick={() => setLoc('/sign-up')}>{text(locale,'Create account','إنشاء حساب')}<ArrowRight size={15}/></button></div></header>
     {accountError != null && retryAccount && <QueryError error={accountError} retry={retryAccount}/>}
+    <div style={{display:'flex',justifyContent:'center',alignItems:'center',flexWrap:'wrap',gap:14,padding:'10px 20px',background:'#e7f5ef',color:'#155c4b'}}>
+      <span>{text(locale,'Be the merchant. Then be the driver. No signup or real money.','جرّب دور التاجر ثم السائق، بدون تسجيل أو أموال حقيقية.')}</span>
+      <button onClick={()=>void tryDemo()} disabled={demoBusy} className="btn btn-primary" data-testid="button-try-demo">{demoBusy ? text(locale,'Starting demo…','جارٍ بدء العرض…') : text(locale,'Try demo','جرّب العرض')}<ArrowRight size={15}/></button>
+    </div>
+    {demoError && <p className="form-error" role="alert">{demoError}</p>}
     <section className="landing-hero">
       <div className="hero-grid"/><div className="landing-hero-inner">
         <div className="hero-copy fade-up"><div className="eyebrow" style={{color:'#75dfc0'}}>{text(locale,'PLATEPAY · KUWAIT','بليت باي · الكويت')}</div><h1 className="hero-title">{text(locale,'Your plate.\nYour call.','لوحتك.\nقرارك.')}</h1><p>{text(locale,'A considered way to handle vehicle payments. Merchants send a request, you review it, and only you decide what happens next.','طريقة واضحة لإدارة مدفوعات المركبة. يرسل التاجر طلباً، تراجعه، وأنت وحدك تقرر ما يحدث.')}</p><div className="hero-buttons"><button className="btn btn-primary" onClick={() => setLoc('/sign-up')} data-testid="button-get-started">{text(locale,'Get started','ابدأ الآن')}<ArrowRight size={16}/></button><a className="btn btn-outline-light" href="#how" data-testid="link-how-it-works">{text(locale,'See how it works','اكتشف آلية العمل')}</a></div><div className="hero-trust"><span><ShieldCheck size={16}/> {text(locale,'Driver approval required','موافقة السائق مطلوبة')}</span><span><Activity size={16}/> {checkState}</span></div></div>
@@ -459,6 +479,7 @@ function OnboardingRoute() { return <ProfileGate>{()=> <Onboarding/>}</ProfileGa
 function AppRoutes() {
   return <AuthProvider>
     <Switch>
+      <Route path="/demo"><Suspense fallback={<div className="content">Loading the demo…</div>}><DemoPage/></Suspense></Route>
       <Route path="/" component={HomeRoute}/>
       <Route path="/sign-in/*?" component={SignInPage}/>
       <Route path="/sign-up/*?" component={SignUpPage}/>

@@ -13,3 +13,9 @@ export function normalizePlate(value: string) {
     .join("")
     .replace(/[\s\p{P}\p{S}\u200E\u200F\u202A-\u202E]/gu, "");
 }
+
+// A demo vehicle cannot collide with, or receive payments from, a real account.
+export function plateForScenario(value: string, scenario?: string | null) {
+  const normalized = normalizePlate(value);
+  return scenario && normalized.length >= 2 ? `DEMO:${scenario}:${normalized}` : normalized;
+}

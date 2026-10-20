@@ -86,8 +86,8 @@ router.get(
     res.json({
       balanceFils: wallet.balanceFils,
       currency: wallet.currency,
-      topUpAvailable: isStripeReady(),
-      topUpUnavailableReason: isStripeReady() ? null : stripeUnavailableReason(),
+      topUpAvailable: !user.demoScenarioId && isStripeReady(),
+      topUpUnavailableReason: user.demoScenarioId ? "Guided demo accounts use simulated starter funds. Stripe checkout is disabled." : isStripeReady() ? null : stripeUnavailableReason(),
       demoUsdCentsPerKwd: DEMO_USD_CENTS_PER_KWD,
       recentEntries: entries.map((entry) => ({
         id: entry._id.toString(),
@@ -107,6 +107,9 @@ router.post(
   requireAppUser,
   requireRole("driver"),
   async (req, res) => {
+    if ((req as PlatePayRequest).platepayUser!.demoScenarioId) {
+      res.status(403).json({ error: "Stripe checkout is disabled for guided demo accounts." }); return;
+    }
     const body = validate(CreateWalletTopUpCheckoutBody, req.body, res);
     if (!body) return;
     try {
@@ -122,6 +125,9 @@ router.post(
 );
 
 router.post("/wallet/topups/confirm", requireAppUser, requireRole("driver"), async (req, res) => {
+  if ((req as PlatePayRequest).platepayUser!.demoScenarioId) {
+    res.status(403).json({ error: "Guided demo accounts cannot confirm Stripe payments." }); return;
+  }
   const body = validate(ConfirmWalletTopUpBody, req.body, res);
   if (!body) return;
   try {

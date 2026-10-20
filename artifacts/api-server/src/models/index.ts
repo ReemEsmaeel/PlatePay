@@ -11,6 +11,7 @@ const userSchema = new Schema(
     role: { type: String, enum: ["driver", "merchant", "admin"], required: true },
     status: { type: String, enum: accountStatuses, default: "active", required: true },
     initialAdminGrantedAt: { type: Date, default: null },
+    demoScenarioId: { type: String, default: null, index: true },
   },
   { timestamps: true, versionKey: false },
 );

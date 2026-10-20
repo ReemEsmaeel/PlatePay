@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#dceeea"/><stop offset="1" stop-color="#f5f6ef"/></linearGradient><linearGradient id="body" x2="0" y2="1"><stop stop-color="#40736c"/><stop offset="1" stop-color="#183d3b"/></linearGradient></defs>
+  <path fill="url(#sky)" d="M0 0h1200v800H0z"/><path fill="#c9d2ce" d="M0 620h1200v180H0z"/>
+  <ellipse cx="600" cy="728" rx="460" ry="35" fill="#81958c" opacity=".3"/>
+  <rect x="210" y="530" width="110" height="202" rx="37" fill="#20332f"/><rect x="880" y="530" width="110" height="202" rx="37" fill="#20332f"/>
+  <path d="M210 418l99-213q20-42 70-42h442q50 0 70 42l99 213v241q0 35-35 35H245q-35 0-35-35z" fill="url(#body)"/>
+  <path d="M335 226h530l75 172H260z" fill="#9ebdb8"/><path d="M372 244h456l48 126H316z" fill="#193f43"/>
+  <rect x="155" y="385" width="120" height="55" rx="20" fill="#25544e"/><rect x="925" y="385" width="120" height="55" rx="20" fill="#25544e"/>
+  <path d="M240 442h128v44H240zm592 0h128v44H832z" fill="#f8eac3"/>
+  <rect x="350" y="450" width="500" height="275" rx="20" fill="#102e2a"/>
+  <g transform="translate(380 470)">
+    <rect width="440" height="238" rx="9" fill="white" stroke="#b4b8b4" stroke-width="2"/>
+    <path d="M52 9v218" stroke="#b4b8b4" stroke-width="2"/>
+    <text x="15" y="155" font-family="Arial,sans-serif" font-size="22" fill="#202525" transform="rotate(-90 24 155)">KUWAIT</text>
+    <text x="114" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="66" fill="#111">12</text>
+    <text x="244" y="194" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="92" letter-spacing="6" fill="#111">34567</text>
+    <text x="344" y="45" font-family="Arial,sans-serif" font-size="20" fill="#59625e">KUWAIT</text>
+  </g>
+  <text x="600" y="65" text-anchor="middle" fill="#27534a" font-family="Arial,sans-serif" font-size="23">PLATEPAY · SYNTHETIC DEMO CAR · NOT A REAL VEHICLE</text>
+</svg>

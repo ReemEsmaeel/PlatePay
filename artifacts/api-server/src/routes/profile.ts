@@ -21,7 +21,7 @@ import {
   requireRole,
   type PlatePayRequest,
 } from "../middlewares/auth";
-import { normalizePlate } from "../lib/plate";
+import { plateForScenario } from "../lib/plate";
 import { validate } from "../lib/validation";
 
 const router: IRouter = Router();
@@ -165,7 +165,7 @@ router.post(
     const body = validate(CreateVehicleBody, req.body, res);
     if (!body) return;
     const user = (req as PlatePayRequest).platepayUser!;
-    const normalizedPlate = normalizePlate(body.plateNumber);
+    const normalizedPlate = plateForScenario(body.plateNumber, user.demoScenarioId);
     if (normalizedPlate.length < 2) {
       res.status(400).json({ error: "Enter a valid vehicle plate." });
       return;
@@ -206,7 +206,7 @@ router.patch(
     const update: Record<string, unknown> = {};
     if (body.plateNumber !== undefined) {
       update.plateNumber = body.plateNumber.trim();
-      update.normalizedPlate = normalizePlate(body.plateNumber);
+      update.normalizedPlate = plateForScenario(body.plateNumber, user.demoScenarioId);
       if (String(update.normalizedPlate).length < 2) {
         res.status(400).json({ error: "Enter a valid vehicle plate." });
         return;
