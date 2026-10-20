@@ -67,4 +67,7 @@ export * from './wallet';
 export * from './walletCurrency';
 export * from './walletLedgerEntry';
 export * from './walletLedgerEntryCurrency';
+export * from './walletTopUpConfirmationInput';
 export * from './walletTopUpInput';
+export * from './walletTopUpStatus';
+export * from './walletTopUpStatusStatus';

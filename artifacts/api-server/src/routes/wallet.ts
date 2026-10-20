@@ -2,12 +2,15 @@ import { Router, type IRouter } from "express";
 import mongoose from "mongoose";
 import {
   CreateWalletTopUpCheckoutBody,
+  ConfirmWalletTopUpBody,
   GetTransactionReceiptParams,
   ListTransactionsQueryParams,
   UpdateSpendingLimitsBody,
 } from "@workspace/api-zod";
 import { kuwaitDateKey } from "../lib/geo";
 import { validate } from "../lib/validation";
+import { isStripeReady, stripeUnavailableReason } from "../lib/stripeClient";
+import { confirmTopUp, createTopUpCheckout, TopUpError } from "../lib/walletTopUps";
 import {
   requireAppUser,
   requireRole,
@@ -82,6 +85,8 @@ router.get(
     res.json({
       balanceFils: wallet.balanceFils,
       currency: wallet.currency,
+      topUpAvailable: isStripeReady(),
+      topUpUnavailableReason: isStripeReady() ? null : stripeUnavailableReason(),
       recentEntries: entries.map((entry) => ({
         id: entry._id.toString(),
         type: entry.type,
@@ -102,13 +107,29 @@ router.post(
   async (req, res) => {
     const body = validate(CreateWalletTopUpCheckoutBody, req.body, res);
     if (!body) return;
-    res.status(503).json({
-      error:
-        "Stripe test checkout is not connected yet. Connect Stripe to enable wallet top-ups.",
-      requestedAmountFils: body.amountFils,
-    });
+    try {
+      const checkout = await createTopUpCheckout((req as PlatePayRequest).platepayUser!._id, body.amountFils, body.idempotencyKey);
+      res.status(201).json(checkout);
+    } catch (error) {
+      req.log.warn({ errorType: error instanceof Error ? error.name : "UnknownError" }, "Stripe checkout could not be created");
+      res.status(error instanceof TopUpError ? error.status : 503).json({
+        error: error instanceof TopUpError ? error.message : "Stripe test checkout is temporarily unavailable. No funds were added. Try again shortly.",
+      });
+    }
   },
 );
+
+router.post("/wallet/topups/confirm", requireAppUser, requireRole("driver"), async (req, res) => {
+  const body = validate(ConfirmWalletTopUpBody, req.body, res);
+  if (!body) return;
+  try {
+    res.json(await confirmTopUp((req as PlatePayRequest).platepayUser!._id, body.sessionId));
+  } catch (error) {
+    res.status(error instanceof TopUpError ? error.status : 503).json({
+      error: error instanceof TopUpError ? error.message : "Payment confirmation is temporarily unavailable. Do not pay again; check your wallet shortly.",
+    });
+  }
+});
 
 router.get(
   "/spending-limits",

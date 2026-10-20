@@ -10,13 +10,14 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/api-server run test:auth` — authentication security regression checks
+- `pnpm --filter @workspace/api-server run test:wallet` — Stripe test-mode funding validation and amount/ownership matching checks
 - `pnpm --filter @workspace/platepay run test:loading` — page-scoped fetching, retry, and font-loading regression checks
 - `pnpm --filter @workspace/platepay run test:plates` — Kuwait plate grouping, confidence gating, and crop geometry checks
 - `pnpm --filter @workspace/api-server run admin:grant` — after building, register the owner-designated account and complete a profile, then run this operator-only command; it prompts for the account password without echoing it
 - Required secret: `MONGODB_URI` — MongoDB Atlas URI for PlatePay application data
 - Optional SOCKS5 egress proxy: `MONGODB_SOCKS5_HOST` and `MONGODB_SOCKS5_PORT`; proxy username/password belong in Replit Secrets. Atlas must allowlist the proxy's fixed egress IP.
 - Required secret: `SESSION_SECRET` — at least 32 random characters; used for hashing opaque session tokens and authentication rate-limit keys
-- The user has resumed Stripe test-checkout setup. Keep PlatePay application data in MongoDB; the managed Stripe integration requires a separate PostgreSQL synchronization store, not a migration of application records. Wallet top-ups remain unavailable until Stripe is connected and verified.
+- The user has resumed Stripe test-checkout setup and connected Stripe. Keep PlatePay application data in MongoDB; the managed Stripe integration uses a separate PostgreSQL synchronization store, not a migration of application records. Checkout stays disabled until synchronization initializes successfully.
 
 ## Stack
 
@@ -67,6 +68,10 @@ The expanded MVP includes driver, merchant, and admin areas; vehicle registratio
 - Never expose secret values in source code, logs, or chat. Use Replit Secrets; commit `.env.example` only.
 - Validate ownership, role, available funds, daily/per-transaction limits, geofence, and pending status on the server before approving a payment.
 - Payment approval must be idempotent; retries must not debit a wallet twice.
+- Stripe wallet funding is test-only. Never credit a checkout redirect or browser-provided amount: verify a paid, completed test session against its owned MongoDB funding intent, then atomically credit its wallet, ledger, transaction, and audit entry once.
+- Check the connected Stripe account's currency support before enabling KWD top-ups. Never silently substitute USD, invent an exchange rate, or change the KWD wallet denomination to bypass a provider restriction.
+- Stripe webhooks require raw request bytes and provider signature verification before fulfillment. They bypass the browser-only CSRF header check, not authentication-by-signature.
+- For Replit-managed PostgreSQL, initialize Stripe schema in development; Publish applies the schema to production. Do not add production startup DDL. Vercel will require its own environment/Stripe webhook and synchronization database configuration.
 - Database-backed routes become ready only after required unique indexes are verified, including in production; connection success alone is not sufficient for safe wallet operations.
 - Keep all Stripe activity in test mode until the user explicitly requests a production change.
 

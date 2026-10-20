@@ -11,5 +11,8 @@ import type { WalletLedgerEntry } from './walletLedgerEntry';
 export interface Wallet {
   balanceFils: number;
   currency: WalletCurrency;
+  topUpAvailable: boolean;
+  /** @nullable */
+  topUpUnavailableReason: string | null;
   recentEntries: WalletLedgerEntry[];
 }

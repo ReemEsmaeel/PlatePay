@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { connectMongoDB } from "./db/mongo";
+import { initializeStripe } from "./lib/stripeClient";
 
 const rawPort = process.env["PORT"];
 
@@ -37,3 +38,4 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
 });
 void connectWithRetry();
+void initializeStripe();

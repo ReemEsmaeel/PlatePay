@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { logger } from "../lib/logger";
 import { getMongoSocks5Options } from "./mongoSocks5";
 import { AuthAccountModel, AuthRateLimitModel, AuthSessionModel } from "../models/auth";
+import { WalletTopUpModel } from "../models/walletTopUp";
 import {
   AuditLogModel, MerchantModel, PaymentRequestModel, SpendingLimitModel,
   TransactionModel, UserModel, VehicleModel, WalletEntryModel, WalletModel,
@@ -40,7 +41,7 @@ export async function connectMongoDB() {
       await Promise.all([
         AuthAccountModel, AuthSessionModel, AuthRateLimitModel,
         UserModel, VehicleModel, MerchantModel, PaymentRequestModel, WalletModel,
-        WalletEntryModel, SpendingLimitModel, TransactionModel, AuditLogModel,
+        WalletEntryModel, SpendingLimitModel, TransactionModel, AuditLogModel, WalletTopUpModel,
       ].map((model) => model.createIndexes()));
       indexesInitialized = true;
     }

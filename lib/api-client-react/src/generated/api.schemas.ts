@@ -335,6 +335,9 @@ export interface WalletLedgerEntry {
 export interface Wallet {
   balanceFils: number;
   currency: WalletCurrency;
+  topUpAvailable: boolean;
+  /** @nullable */
+  topUpUnavailableReason: string | null;
   recentEntries: WalletLedgerEntry[];
 }
 
@@ -344,6 +347,28 @@ export interface WalletTopUpInput {
      * @maximum 1000000
      */
   amountFils: number;
+  idempotencyKey: string;
+}
+
+export interface WalletTopUpConfirmationInput {
+  /**
+     * @maxLength 255
+     * @pattern ^cs_test_[A-Za-z0-9]+$
+     */
+  sessionId: string;
+}
+
+export type WalletTopUpStatusStatus = typeof WalletTopUpStatusStatus[keyof typeof WalletTopUpStatusStatus];
+
+
+export const WalletTopUpStatusStatus = {
+  pending: 'pending',
+  completed: 'completed',
+  expired: 'expired',
+} as const;
+
+export interface WalletTopUpStatus {
+  status: WalletTopUpStatusStatus;
 }
 
 export interface CheckoutSession {

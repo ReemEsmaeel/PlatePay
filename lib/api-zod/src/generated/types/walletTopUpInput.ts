@@ -12,4 +12,5 @@ export interface WalletTopUpInput {
      * @maximum 1000000
      */
   amountFils: number;
+  idempotencyKey: string;
 }

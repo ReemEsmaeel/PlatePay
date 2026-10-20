@@ -5,6 +5,7 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { assertSessionSecret } from "./lib/sessions";
 import { requireSameOriginMutation } from "./middlewares/requestSecurity";
+import { stripeWebhookRouter } from "./routes/stripeWebhook";
 
 const app: Express = express();
 assertSessionSecret();
@@ -35,6 +36,9 @@ app.use("/api", (_req, res, next) => {
   res.set({ "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
   next();
 });
+// Provider signatures authenticate this endpoint; it must receive raw bytes and
+// must not pass through the browser-only CSRF header requirement.
+app.use(stripeWebhookRouter);
 app.use("/api", requireSameOriginMutation);
 app.use(express.json({ limit: "16kb" }));
 

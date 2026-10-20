@@ -402,6 +402,26 @@ paths:
                 $ref: "#/components/schemas/CheckoutSession"
         "400":
           $ref: "#/components/responses/BadRequest"
+  /wallet/topups/confirm:
+    post:
+      operationId: confirmWalletTopUp
+      tags: [wallet]
+      summary: Verify an owned Stripe test checkout and reconcile its wallet credit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletTopUpConfirmationInput"
+      responses:
+        "200":
+          description: Verified checkout status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletTopUpStatus"
+        "400":
+          $ref: "#/components/responses/BadRequest"
   /spending-limits:
     get:
       operationId: getSpendingLimits
@@ -955,11 +975,15 @@ components:
         currency:
           type: string
           enum: [KWD]
+        topUpAvailable:
+          type: boolean
+        topUpUnavailableReason:
+          type: [string, "null"]
         recentEntries:
           type: array
           items:
             $ref: "#/components/schemas/WalletLedgerEntry"
-      required: [balanceFils, currency, recentEntries]
+      required: [balanceFils, currency, topUpAvailable, topUpUnavailableReason, recentEntries]
     WalletLedgerEntry:
       type: object
       properties:
@@ -982,12 +1006,32 @@ components:
       required: [id, type, amountFils, currency, status, description, createdAt]
     WalletTopUpInput:
       type: object
+      additionalProperties: false
       properties:
         amountFils:
           type: integer
           minimum: 1000
           maximum: 1000000
-      required: [amountFils]
+        idempotencyKey:
+          type: string
+          format: uuid
+      required: [amountFils, idempotencyKey]
+    WalletTopUpConfirmationInput:
+      type: object
+      additionalProperties: false
+      properties:
+        sessionId:
+          type: string
+          pattern: "^cs_test_[A-Za-z0-9]+$"
+          maxLength: 255
+      required: [sessionId]
+    WalletTopUpStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, completed, expired]
+      required: [status]
     CheckoutSession:
       type: object
       properties:

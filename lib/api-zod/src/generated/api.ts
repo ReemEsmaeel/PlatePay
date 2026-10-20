@@ -488,6 +488,8 @@ export const RejectPaymentRequestResponse = zod.object({
 export const GetWalletResponse = zod.object({
   "balanceFils": zod.number().int(),
   "currency": zod.enum(['KWD']),
+  "topUpAvailable": zod.boolean(),
+  "topUpUnavailableReason": zod.string().nullable(),
   "recentEntries": zod.array(zod.object({
   "id": zod.string(),
   "type": zod.enum(['merchant_payment', 'wallet_top_up', 'refund']),
@@ -509,12 +511,31 @@ export const createWalletTopUpCheckoutBodyAmountFilsMax = 1000000;
 
 
 export const CreateWalletTopUpCheckoutBody = zod.object({
-  "amountFils": zod.number().int().min(createWalletTopUpCheckoutBodyAmountFilsMin).max(createWalletTopUpCheckoutBodyAmountFilsMax)
+  "amountFils": zod.number().int().min(createWalletTopUpCheckoutBodyAmountFilsMin).max(createWalletTopUpCheckoutBodyAmountFilsMax),
+  "idempotencyKey": zod.string().uuid()
 })
 
 export const CreateWalletTopUpCheckoutResponse = zod.object({
   "sessionId": zod.string(),
   "checkoutUrl": zod.string().url()
+})
+
+
+/**
+ * @summary Verify an owned Stripe test checkout and reconcile its wallet credit
+ */
+export const confirmWalletTopUpBodySessionIdMax = 255;
+
+
+export const confirmWalletTopUpBodySessionIdRegExp = new RegExp('^cs_test_[A-Za-z0-9]+$');
+
+
+export const ConfirmWalletTopUpBody = zod.object({
+  "sessionId": zod.string().max(confirmWalletTopUpBodySessionIdMax).regex(confirmWalletTopUpBodySessionIdRegExp)
+})
+
+export const ConfirmWalletTopUpResponse = zod.object({
+  "status": zod.enum(['pending', 'completed', 'expired'])
 })
 
 
