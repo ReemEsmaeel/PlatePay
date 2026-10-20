@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/reac
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { AuthForm } from './auth/AuthForm';
 import { getPortalDataNeeds, shouldRetryQuery } from './lib/loading-policy';
+import { PlatePhotoPreview } from './components/PlatePhotoPreview';
 import { Route, Switch, Link, Redirect, Router as WouterRouter, useLocation } from 'wouter';
 import {
   useHealthCheck, useGetCurrentProfile, useCreateProfile, useListVehicles, useCreateVehicle,
@@ -233,13 +234,16 @@ function PortalPage({ profile, section }: { profile: UserProfile; section: strin
   const [scanFile,setScanFile] = useState<File|null>(null);
   const [scanZoom,setScanZoom] = useState(1);
   const [ocrStatus,setOcrStatus] = useState('');
+  const [ocrBusy,setOcrBusy] = useState(false);
+  const scanVersion = useRef(0);
   const [cameraOn,setCameraOn] = useState(false);
   const [locationPending,setLocationPending] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const cameraStream = useRef<MediaStream|null>(null);
   const requestDetailQ = useGetPaymentRequest(requestDetailId,{query:{queryKey:getGetPaymentRequestQueryKey(requestDetailId),enabled:!!requestDetailId}});
   const receiptQ = useGetTransactionReceipt(receiptId,{query:{queryKey:getGetTransactionReceiptQueryKey(receiptId),enabled:!!receiptId}});
-  useEffect(()=>()=>{cameraStream.current?.getTracks().forEach(t=>t.stop())},[]);
+  useEffect(()=>()=>{cameraStream.current?.getTracks().forEach(t=>t.stop());scanVersion.current++;},[]);
+  useEffect(()=>()=>{if(scanImage)URL.revokeObjectURL(scanImage)},[scanImage]);
   useEffect(()=>{
     if(cameraOn && videoRef.current && cameraStream.current) {
       videoRef.current.srcObject = cameraStream.current;
@@ -252,25 +256,26 @@ function PortalPage({ profile, section }: { profile: UserProfile; section: strin
     (Object.keys(queries) as (keyof typeof queries)[]).forEach(key=>{if(needs[key]) void queries[key].refetch();});
   };
   const callOcr = async (file:File, zoom:number) => {
-    setOcrStatus('Reading the plate…');
+    if(ocrBusy)return;
+    setOcrBusy(true);
+    const version = ++scanVersion.current;
+    setScanPlate('');
+    setOcrStatus('Reading the Kuwait plate numbers…');
     try {
-      const image = new Image(); const url = URL.createObjectURL(file);
-      await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error('Image unavailable'));image.src=url;});
-      const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d');
-      if(!ctx) throw new Error('Canvas unavailable');
-      const cropWidth=image.width/zoom,cropHeight=image.height/Math.max(1,zoom);
-      const sx=(image.width-cropWidth)/2,sy=(image.height-cropHeight)/2;
-      canvas.width=cropWidth;canvas.height=cropHeight;ctx.drawImage(image,sx,sy,cropWidth,cropHeight,0,0,cropWidth,cropHeight);
-      const { createWorker } = await import('tesseract.js');
-      const worker=await createWorker(['eng','ara']);
-      let recognized = '';
-      try { recognized = (await worker.recognize(canvas)).data.text; }
-      finally { await worker.terminate(); URL.revokeObjectURL(url); }
-      const candidate=recognized.toUpperCase().split(/\r?\n/).map((line:string)=>line.replace(/KUWAIT|الكويت/g,'').replace(/[^A-Z0-9\u0600-\u06FF -]/g,'').trim()).filter((line:string)=>/[0-9٠-٩۰-۹]/.test(line)).sort((a:string,b:string)=>b.length-a.length)[0] ?? '';
-      setScanPlate(candidate);setOcrStatus(candidate?'Plate text found. Review and correct it before submitting.':'No clear plate text found. Enter the plate manually.');
-    } catch { setOcrStatus('Could not read the image. Enter the plate manually.'); }
+      const { readKuwaitPlate } = await import('./lib/read-kuwait-plate');
+      const result = await readKuwaitPlate(file, zoom);
+      if(version !== scanVersion.current)return;
+      setScanPlate(result.plate ?? '');
+      setOcrStatus(result.plate
+        ? 'Series and number read. Check BOTH against the photo before submitting.'
+        : 'Reading uncertain. Align both number groups inside the outlined areas and retry, or enter the full plate manually.');
+    } catch {
+      if(version === scanVersion.current)setOcrStatus('Could not read the image. Enter the plate manually.');
+    } finally {
+      setOcrBusy(false);
+    }
   };
-  const onImage = (file?:File) => { if(!file)return; setScanFile(file);setScanImage(URL.createObjectURL(file));setOcrStatus('Photo ready. Adjust crop, then read the plate.'); };
+  const onImage = (file?:File) => { if(!file)return;scanVersion.current++;setScanPlate('');setScanZoom(1);setScanFile(file);setScanImage(URL.createObjectURL(file));setOcrStatus('Kuwait layout: align the small series in the upper box and the large number in the lower box. Other layouts: enter manually.'); };
   const startCamera = async () => { try{cameraStream.current?.getTracks().forEach(t=>t.stop());cameraStream.current=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});setCameraOn(true);}catch{setOcrStatus('Camera access is unavailable. Upload a photo instead.');} };
   const captureStill = () => { const video=videoRef.current;if(!video?.videoWidth||!video.videoHeight){setOcrStatus('Wait for the camera image before capturing.');return;}const c=document.createElement('canvas');c.width=video.videoWidth;c.height=video.videoHeight;c.getContext('2d')?.drawImage(video,0,0);c.toBlob(blob=>{if(blob)onImage(new File([blob],'plate-capture.jpg',{type:'image/jpeg'}));},'image/jpeg');cameraStream.current?.getTracks().forEach(t=>t.stop());cameraStream.current=null;setCameraOn(false); };
   const submitRequest = (e:FormEvent<HTMLFormElement>) => {e.preventDefault();const form=e.currentTarget;const fd=new FormData(form);const amount=Number(fd.get('amount'));const plateText=String(fd.get('plate')||'').trim();if(!plateText||!Number.isFinite(amount)||amount<=0)return;createRequest.mutate({data:{plateNumber:plateText,amountFils:Math.round(amount*1000),serviceCategory:String(fd.get('category')) as ServiceCategory,description:String(fd.get('description')||'')||undefined,orderReference:String(fd.get('reference')||'')||undefined}},{onSuccess:()=>{invalid(qc,getListPaymentRequestsQueryKey(),getGetMerchantDashboardQueryKey());form.reset();setScanImage('');setScanFile(null);setScanPlate('');setLocation('/merchant/history');}});};
@@ -350,7 +355,28 @@ function PortalPage({ profile, section }: { profile: UserProfile; section: strin
     </main>
   );
 
-  if(merchant&&section==='new-request') return <main className="content">{heading}<div className="request-workspace"><section className="panel scan-panel"><div className="panel-heading"><div><h2><ScanLine size={18}/> Plate identification</h2><span>Recognition identifies only. It never charges automatically.</span></div><span className="status status-pending">REVIEW REQUIRED</span></div><div className="upload-zone">{cameraOn?<div className="camera-view"><video ref={videoRef} autoPlay playsInline/><button className="btn btn-primary" onClick={captureStill} data-testid="button-capture-still"><Camera size={16}/>Capture still</button></div>:scanImage?<div className="image-review"><img src={scanImage} alt="Uploaded plate photo for review" style={{transform:`scale(${scanZoom})`}}/><div className="image-overlay">REVIEW CROP</div><button className="image-clear" onClick={()=>{setScanImage('');setScanFile(null);setScanPlate('')}} aria-label="Remove image"><X size={15}/></button></div>:<div className="upload-prompt"><span className="upload-icon"><Upload size={23}/></span><strong>Upload a plate photo</strong><span>JPG or PNG · use a clear still image</span><div><label className="btn btn-quiet upload-button" data-testid="button-upload-photo"><Upload size={15}/>Choose photo<input hidden type="file" accept="image/*" onChange={e=>onImage(e.target.files?.[0])}/></label><button type="button" className="btn btn-quiet" onClick={startCamera} data-testid="button-open-camera"><Camera size={15}/>Use camera</button></div></div>}</div>{scanImage&&<div className="crop-controls"><label>Crop zoom <input aria-label="Crop zoom" type="range" min="1" max="2.4" step=".1" value={scanZoom} onChange={e=>setScanZoom(Number(e.target.value))}/></label><button className="btn btn-quiet" disabled={!scanFile||!!ocrStatus.includes('Reading')} onClick={()=>scanFile&&callOcr(scanFile,scanZoom)} data-testid="button-read-plate"><Sparkles size={15}/>Read plate</button></div>}{ocrStatus&&<div className="ocr-message" role="status"><Activity size={15}/>{ocrStatus}</div>}<div className="identification-rule"><ShieldCheck size={16}/><span>Plate recognition is an identification aid only. Always review and correct the text below.</span></div></section><form className="panel request-form" onSubmit={submitRequest}><div className="eyebrow">REQUEST DETAILS</div><h2>Send for driver approval</h2><p>Submit a request only after the plate and amount are reviewed.</p><Field label="Plate number"><input name="plate" className="input plate-input" value={scanPlate} onChange={e=>setScanPlate(e.target.value.toUpperCase())} required minLength={2} maxLength={20} placeholder="Enter or correct plate" data-testid="input-request-plate"/></Field><Field label="Service category"><select className="input" name="category" required data-testid="select-service-category">{categoryOptions.map(c=><option key={c} value={c}>{categoryLabel(c)}</option>)}</select></Field><Field label="Amount (KWD)"><div className="currency-input"><input name="amount" className="input" type="number" required min=".001" max="10000" step=".001" placeholder="0.000" data-testid="input-request-amount"/><span>KWD</span></div></Field><Field label="Description (optional)"><input name="description" className="input" maxLength={240} placeholder="What is this request for?" data-testid="input-request-description"/></Field><Field label="Order reference (optional)"><input name="reference" className="input" maxLength={80} placeholder="Order or lane reference" data-testid="input-order-reference"/></Field><div className="request-notice"><CircleAlert size={15}/>The driver must explicitly approve. Plate recognition will not trigger a charge.</div><button className="btn btn-primary full-btn" disabled={createRequest.isPending} data-testid="button-submit-request">{createRequest.isPending?'Sending request…':'Send approval request'}<ArrowRight size={15}/></button>{createRequest.isError&&<p className="form-error">Request could not be sent. Confirm the plate is registered and try again.</p>}</form></div></main>;
+  if(merchant&&section==='new-request') return <main className="content">{heading}<div className="request-workspace">
+    <section className="panel scan-panel">
+      <div className="panel-heading"><div><h2><ScanLine size={18}/> Kuwait plate identification</h2><span>Recognition identifies only. It never charges automatically.</span></div><span className="status status-pending">REVIEW REQUIRED</span></div>
+      <div className="upload-zone">{cameraOn
+        ? <div className="camera-view"><video ref={videoRef} autoPlay playsInline/><button className="btn btn-primary" onClick={captureStill} data-testid="button-capture-still"><Camera size={16}/>Capture still</button></div>
+        : scanImage && scanFile
+          ? <div className="image-review"><PlatePhotoPreview file={scanFile} zoom={scanZoom}/><div className="image-overlay">SERIES ABOVE · NUMBER BELOW</div><button className="image-clear" onClick={()=>{scanVersion.current++;setScanImage('');setScanFile(null);setScanPlate('');setOcrStatus('')}} aria-label="Remove image"><X size={15}/></button></div>
+          : <div className="upload-prompt"><span className="upload-icon"><Upload size={23}/></span><strong>Upload a Kuwait plate photo</strong><span>Frame the plate tightly, upright and straight-on.</span><div><label className="btn btn-quiet upload-button" data-testid="button-upload-photo"><Upload size={15}/>Choose photo<input hidden type="file" accept="image/*" onChange={e=>onImage(e.target.files?.[0])}/></label><button type="button" className="btn btn-quiet" onClick={startCamera} data-testid="button-open-camera"><Camera size={15}/>Use camera</button></div></div>}
+      </div>
+      {scanImage&&<div className="crop-controls"><label>Crop zoom <input aria-label="Crop zoom" type="range" min="1" max="2.4" step=".1" value={scanZoom} onChange={e=>{scanVersion.current++;setScanZoom(Number(e.target.value));setScanPlate('');setOcrStatus('Crop changed. Align both number groups inside the boxes, then read again.')}}/></label><button className="btn btn-quiet" disabled={!scanFile||ocrBusy} onClick={()=>scanFile&&callOcr(scanFile,scanZoom)} data-testid="button-read-plate"><Sparkles size={15}/>{ocrBusy?'Reading…':'Read plate'}</button></div>}
+      {ocrStatus&&<div className="ocr-message" role="status"><Activity size={15}/>{ocrStatus}</div>}
+      <div className="identification-rule"><ShieldCheck size={16}/><span>For Kuwait plates with a small series above the large number. Other layouts: enter manually. Always verify both number groups.</span></div>
+    </section>
+    <form className="panel request-form" onSubmit={submitRequest}><div className="eyebrow">REQUEST DETAILS</div><h2>Send for driver approval</h2><p>Submit a request only after the plate and amount are reviewed.</p>
+      <Field label="Plate number"><input name="plate" className="input plate-input" value={scanPlate} onChange={e=>{scanVersion.current++;setScanPlate(e.target.value.toUpperCase())}} required minLength={2} maxLength={20} placeholder="Series and number, or enter manually" data-testid="input-request-plate"/></Field>
+      <Field label="Service category"><select className="input" name="category" required data-testid="select-service-category">{categoryOptions.map(c=><option key={c} value={c}>{categoryLabel(c)}</option>)}</select></Field>
+      <Field label="Amount (KWD)"><div className="currency-input"><input name="amount" className="input" type="number" required min=".001" max="10000" step=".001" placeholder="0.000" data-testid="input-request-amount"/><span>KWD</span></div></Field>
+      <Field label="Description (optional)"><input name="description" className="input" maxLength={240} placeholder="What is this request for?" data-testid="input-request-description"/></Field>
+      <Field label="Order reference (optional)"><input name="reference" className="input" maxLength={80} placeholder="Order or lane reference" data-testid="input-order-reference"/></Field>
+      <div className="request-notice"><CircleAlert size={15}/>The driver must explicitly approve. Plate recognition will not trigger a charge.</div><button className="btn btn-primary full-btn" disabled={createRequest.isPending||ocrBusy} data-testid="button-submit-request">{createRequest.isPending?'Sending request…':'Send approval request'}<ArrowRight size={15}/></button>{createRequest.isError&&<p className="form-error">Request could not be sent. Confirm the plate is registered and try again.</p>}
+    </form>
+  </div></main>;
 
   if(merchant&&section==='profile') return <MerchantProfilePage profileQuery={merchantProfileQ} services={servicesQ.data||[]} mutation={updateMerchantProfile} qc={qc}/>;
   if(merchant&&section==='history') return <main className="content">{heading}<section className="panel table-panel"><div className="panel-heading"><div><h2>Requests sent</h2><span>Driver decisions remain explicit.</span></div><Link className="btn btn-primary" href="/merchant/request" data-testid="button-new-request-history"><Plus size={15}/>New request</Link></div><EmptyRows loading={requestQ.isLoading} error={requestQ.isError} empty={!requestQ.data?.length} retry={()=>requestQ.refetch()}><div className="table-wrap"><table><thead><tr><th>Created</th><th>Plate</th><th>Service</th><th>Amount</th><th>Status</th><th>Request detail</th></tr></thead><tbody>{requestQ.data?.map(r=><tr key={r.id} data-testid={`merchant-request-${r.id}`}><td>{dateLabel(r.createdAt)}</td><td className="plate-cell">{r.plateNumber}</td><td>{categoryLabel(r.serviceCategory)}</td><td className="money-cell">{money(r.amountFils)}</td><td><Status value={r.status}/></td><td><button className="table-link" onClick={()=>setRequestDetailId(r.id)} data-testid={`button-request-detail-${r.id}`}>View request</button></td></tr>)}</tbody></table></div></EmptyRows></section>{requestDetailId&&<div className="modal-backdrop" onClick={()=>setRequestDetailId('')}><div className="modal-card panel" onClick={e=>e.stopPropagation()}><button className="modal-close icon-button" onClick={()=>setRequestDetailId('')}><X size={18}/></button>{requestDetailQ.isLoading?<div className="skeleton" style={{height:100}}/>:requestDetailQ.data&&<><div className="eyebrow">REQUEST DETAIL</div><h2>{requestDetailQ.data.merchantName}</h2><div className="detail-pair"><span>Plate</span><b>{requestDetailQ.data.plateNumber}</b></div><div className="detail-pair"><span>Amount</span><b>{money(requestDetailQ.data.amountFils)}</b></div><div className="detail-pair"><span>Status</span><Status value={requestDetailQ.data.status}/></div><p>{requestDetailQ.data.description||'No description'}</p></>}</div></div>}</main>;

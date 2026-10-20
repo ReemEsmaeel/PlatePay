@@ -1,2 +1,3 @@
 - [Atlas development access](atlas-development-access.md) — dynamic egress does not itself require a paid proxy; a verified current server IP can be temporarily allowlisted.
 - [Preview cookie rewriting](preview-cookie-rewriting.md) — this workspace's preview proxy changes SameSite=Lax to None; inspect backend attributes before treating it as an app regression.
+- [Plate OCR validation](plate-ocr-validation.md) — preprocessing can reduce stencil-digit accuracy; validate actual browser crops and preserve both Kuwait number groups.
