@@ -979,11 +979,15 @@ components:
           type: boolean
         topUpUnavailableReason:
           type: [string, "null"]
+        demoUsdCentsPerKwd:
+          type: integer
+          minimum: 1
+          description: Fixed demo conversion rate in USD cents per KWD; not a live FX quote.
         recentEntries:
           type: array
           items:
             $ref: "#/components/schemas/WalletLedgerEntry"
-      required: [balanceFils, currency, topUpAvailable, topUpUnavailableReason, recentEntries]
+      required: [balanceFils, currency, topUpAvailable, topUpUnavailableReason, demoUsdCentsPerKwd, recentEntries]
     WalletLedgerEntry:
       type: object
       properties:

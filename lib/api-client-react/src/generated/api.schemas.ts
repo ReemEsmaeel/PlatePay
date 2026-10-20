@@ -338,6 +338,11 @@ export interface Wallet {
   topUpAvailable: boolean;
   /** @nullable */
   topUpUnavailableReason: string | null;
+  /**
+     * Fixed demo conversion rate in USD cents per KWD; not a live FX quote.
+     * @minimum 1
+     */
+  demoUsdCentsPerKwd: number;
   recentEntries: WalletLedgerEntry[];
 }
 

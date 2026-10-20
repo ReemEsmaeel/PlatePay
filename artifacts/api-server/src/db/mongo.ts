@@ -10,20 +10,31 @@ import {
 
 let connectionPromise: Promise<typeof mongoose> | undefined;
 let indexesInitialized = false;
+let initializationPromise: Promise<typeof mongoose> | undefined;
 
 export function isDatabaseReady() {
   return mongoose.connection.readyState === 1 && indexesInitialized;
 }
 
-export async function connectMongoDB() {
+export function connectMongoDB() {
+  if (isDatabaseReady()) return Promise.resolve(mongoose);
+  initializationPromise ??= initializeMongoDB().finally(() => { initializationPromise = undefined; });
+  return initializationPromise;
+}
+
+async function initializeMongoDB() {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     throw new Error("MONGODB_URI is required to start the PlatePay API.");
   }
 
+  if (mongoose.connection.readyState === 0) connectionPromise = undefined;
   connectionPromise ??= mongoose.connect(uri, {
     serverSelectionTimeoutMS: 15_000,
     autoIndex: false,
+    maxPoolSize: 5,
+    minPoolSize: 0,
+    maxIdleTimeMS: 30_000,
     ...getMongoSocks5Options(),
   });
 

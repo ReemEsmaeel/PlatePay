@@ -1,10 +1,10 @@
 ---
 name: Wallet currency
-description: User decision to retain KWD rather than work around Stripe currency restrictions with USD demo checkout.
+description: User approval for USD test checkout while retaining KWD demo wallet balances.
 ---
 
-Keep the PlatePay wallet in KWD and leave Stripe top-ups disabled while the connected account cannot accept KWD.
+Keep the PlatePay demo wallet in KWD and allow USD Stripe test payments with a clearly disclosed demo conversion.
 
-**Why:** The user explicitly chose “Keep KWD and leave Stripe top-ups disabled” instead of the proposed USD test checkout with a demo conversion.
+**Why:** The user changed their earlier decision to leave funding disabled: “make the payment in usd and desplay it as kwd, it is just a demo.”
 
-**How to apply:** Do not introduce USD checkout, a demo exchange rate, or automatic demo funding as a workaround. Obtain explicit approval before changing that scope.
+**How to apply:** Label the USD payment and KWD wallet credit as a test-only demo, never a live FX quote. Do not switch to real-money payments without separate approval.

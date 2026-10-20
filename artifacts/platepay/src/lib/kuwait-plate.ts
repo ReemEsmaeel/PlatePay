@@ -30,6 +30,10 @@ export function regionRectangle(name: keyof typeof PLATE_REGIONS, width: number,
 }
 
 type Reading = { text: string; confidence: number };
+export function stripPlateWhitespace(value: string) {
+  return value.replace(/\s/g, '');
+}
+
 export function interpretKuwaitPlate(series: Reading, number: Reading) {
   const digits = (text: string) => text
     .replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 0x660))
@@ -44,5 +48,5 @@ export function interpretKuwaitPlate(series: Reading, number: Reading) {
     || !Number.isFinite(confidence) || confidence < 80) {
     return { plate: null, confidence };
   }
-  return { plate: `${code} ${registration}`, confidence };
+  return { plate: `${code}${registration}`, confidence };
 }

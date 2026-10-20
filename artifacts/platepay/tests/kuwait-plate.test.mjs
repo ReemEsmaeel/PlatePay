@@ -1,19 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { interpretKuwaitPlate, plateCrop, regionRectangle } from '../src/lib/kuwait-plate.ts';
+import { interpretKuwaitPlate, plateCrop, regionRectangle, stripPlateWhitespace } from '../src/lib/kuwait-plate.ts';
 
 const reading = (text, confidence = 95) => ({ text, confidence });
 
 test('preserves both series and registration, including leading zeroes', () => {
-  assert.equal(interpretKuwaitPlate(reading('12\n'), reading('34567\n')).plate, '12 34567');
-  assert.equal(interpretKuwaitPlate(reading('01'), reading('00234')).plate, '01 00234');
+  assert.equal(interpretKuwaitPlate(reading('12\n'), reading('34567\n')).plate, '1234567');
+  assert.equal(interpretKuwaitPlate(reading('01'), reading('00234')).plate, '0100234');
 });
 
 test('normalizes equivalent numerals without guessing letters', () => {
-  assert.equal(interpretKuwaitPlate(reading('١٢'), reading('۳۴۵۶۷')).plate, '12 34567');
+  assert.equal(interpretKuwaitPlate(reading('١٢'), reading('۳۴۵۶۷')).plate, '1234567');
   for (const text of ['KUWAIT 12', 'I2', '1O', '1 2', '', '123']) {
     assert.equal(interpretKuwaitPlate(reading(text), reading('34567')).plate, null);
   }
+});
+
+test('removes typed and pasted whitespace without losing digits or leading zeroes', () => {
+  assert.equal(stripPlateWhitespace(' 01  00234 '), '0100234');
+  assert.equal(stripPlateWhitespace('01\t00\n234'), '0100234');
+  assert.equal(stripPlateWhitespace('01\u00a000\u202f234'), '0100234');
+  assert.equal(stripPlateWhitespace(''), '');
 });
 
 test('rejects partial, ambiguous, multiline and low-confidence reads', () => {

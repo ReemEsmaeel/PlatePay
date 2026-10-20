@@ -8,6 +8,8 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - `pnpm --filter @workspace/platepay run dev` — run the React + Vite web app
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
+- `pnpm run build:vercel` — build static frontend and a single serverless API using Vercel Build Output API
+- `pnpm run test:vercel` — after building, check the deployment bundle, raw Stripe signatures and fail-closed serverless behavior
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/api-server run test:auth` — authentication security regression checks
 - `pnpm --filter @workspace/api-server run test:wallet` — Stripe test-mode funding validation and amount/ownership matching checks
@@ -69,9 +71,9 @@ The expanded MVP includes driver, merchant, and admin areas; vehicle registratio
 - Validate ownership, role, available funds, daily/per-transaction limits, geofence, and pending status on the server before approving a payment.
 - Payment approval must be idempotent; retries must not debit a wallet twice.
 - Stripe wallet funding is test-only. Never credit a checkout redirect or browser-provided amount: verify a paid, completed test session against its owned MongoDB funding intent, then atomically credit its wallet, ledger, transaction, and audit entry once.
-- Check the connected Stripe account's currency support before enabling KWD top-ups. Never silently substitute USD, invent an exchange rate, or change the KWD wallet denomination to bypass a provider restriction.
+- The user approved USD test checkout with KWD demo wallet balances. Use the disclosed fixed demo rate of 1 KWD = USD 3.25, not a live FX quote. Persist the server-owned quote and verify the paid USD cents before crediting the intended KWD fils. Never enable live payments or change the wallet denomination as part of this demo.
 - Stripe webhooks require raw request bytes and provider signature verification before fulfillment. They bypass the browser-only CSRF header check, not authentication-by-signature.
-- For Replit-managed PostgreSQL, initialize Stripe schema in development; Publish applies the schema to production. Do not add production startup DDL. Vercel will require its own environment/Stripe webhook and synchronization database configuration.
+- For Replit-managed PostgreSQL, initialize Stripe schema in development; Publish applies the schema to production. Do not add production startup DDL. On Vercel, use direct test-only Stripe credentials and a manually configured signed webhook, without Replit identity or PostgreSQL synchronization. See `VERCEL.md`; never migrate MongoDB application records.
 - Database-backed routes become ready only after required unique indexes are verified, including in production; connection success alone is not sufficient for safe wallet operations.
 - Keep all Stripe activity in test mode until the user explicitly requests a production change.
 

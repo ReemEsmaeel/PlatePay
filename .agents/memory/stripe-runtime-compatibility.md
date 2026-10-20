@@ -14,3 +14,9 @@ Use the installed Stripe SDK's type definitions and changelog when older example
 **Why:** The installed SDK changed Checkout's card-method restriction field from older examples. Forcing old examples through type assertions would conceal an API-version mismatch.
 
 **How to apply:** Check the current package before changing request fields. Preserve explicit test-only checks and do not downgrade or weaken payment validation merely to make a template compile.
+
+Do not classify Stripe signature failures using the JavaScript error name alone.
+
+**Why:** The installed SDK can give signature failures the generic name `Error`. Treating that name as the provider's error category incorrectly turns invalid signatures into retryable service failures.
+
+**How to apply:** Use the SDK's exported error classes or structured provider error types, and test a tampered raw payload as well as a correctly signed one.

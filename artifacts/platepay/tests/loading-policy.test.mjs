@@ -17,7 +17,7 @@ test('each driver page fetches only the data it renders', () => {
 test('merchant pages avoid fetching unrelated history, transactions, or services', () => {
   assert.deepEqual(enabled('merchant', 'overview'), ['merchantDashboard', 'merchantProfile']);
   assert.deepEqual(enabled('merchant', 'profile'), ['merchantProfile', 'services']);
-  assert.deepEqual(enabled('merchant', 'new-request'), []);
+  assert.deepEqual(enabled('merchant', 'new-request'), ['merchantProfile']);
   assert.deepEqual(enabled('merchant', 'history'), ['requests']);
   assert.deepEqual(enabled('merchant', 'transactions'), ['transactions']);
 });

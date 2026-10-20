@@ -485,11 +485,15 @@ export const RejectPaymentRequestResponse = zod.object({
 /**
  * @summary Get the signed-in driver's KWD wallet balance
  */
+
+
+
 export const GetWalletResponse = zod.object({
   "balanceFils": zod.number().int(),
   "currency": zod.enum(['KWD']),
   "topUpAvailable": zod.boolean(),
   "topUpUnavailableReason": zod.string().nullable(),
+  "demoUsdCentsPerKwd": zod.number().int().min(1).describe('Fixed demo conversion rate in USD cents per KWD; not a live FX quote.'),
   "recentEntries": zod.array(zod.object({
   "id": zod.string(),
   "type": zod.enum(['merchant_payment', 'wallet_top_up', 'refund']),

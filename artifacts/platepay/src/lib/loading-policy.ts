@@ -13,7 +13,7 @@ export function getPortalDataNeeds(role: Role, section: string) {
     limits: driver && ['overview', 'limits'].includes(section),
     transactions: (driver && ['overview', 'transactions'].includes(section))
       || (merchant && section === 'transactions'),
-    merchantProfile: merchant && ['overview', 'profile'].includes(section),
+    merchantProfile: merchant && ['overview', 'profile', 'new-request'].includes(section),
     merchantDashboard: merchant && section === 'overview',
     services: merchant && section === 'profile',
     adminOverview: admin && section === 'overview',

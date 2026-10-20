@@ -11,7 +11,7 @@ function errorMessage(error: unknown, fallback: string) {
   return typeof data?.error === 'string' ? data.error : fallback;
 }
 
-export function WalletFundingPanel({ available, unavailableReason, arabic }: { available: boolean; unavailableReason?: string | null; arabic: boolean }) {
+export function WalletFundingPanel({ available, unavailableReason, demoUsdCentsPerKwd, arabic }: { available: boolean; unavailableReason?: string | null; demoUsdCentsPerKwd: number; arabic: boolean }) {
   const qc = useQueryClient();
   const checkout = useCreateWalletTopUpCheckout();
   const confirmation = useConfirmWalletTopUp();
@@ -28,6 +28,10 @@ export function WalletFundingPanel({ available, unavailableReason, arabic }: { a
     confirmation.mutate({ data: { sessionId } }, {
       onSuccess: result => {
         refresh();
+        if (result.status === 'completed') {
+          attempt.current = crypto.randomUUID();
+          checkout.reset();
+        }
         setMessage(result.status === 'completed'
           ? 'Test payment confirmed. Your wallet and transaction history have been updated.'
           : result.status === 'expired'
@@ -68,6 +72,10 @@ export function WalletFundingPanel({ available, unavailableReason, arabic }: { a
     });
   };
   const returnedSession = new URLSearchParams(window.location.search).get('session_id');
+  const amountFils = Math.round(Number(amount) * 1000);
+  const quoteCents = Math.floor((amountFils * demoUsdCentsPerKwd + 500) / 1000);
+  const validQuote = Number.isSafeInteger(amountFils) && amountFils >= 1000 && amountFils <= 1_000_000 && demoUsdCentsPerKwd > 0;
+  const awaitingConfirmation = !!returnedSession && confirmation.data?.status !== 'completed' && confirmation.data?.status !== 'expired';
   return <section className="panel topup-panel">
     <div className="eyebrow">STRIPE · TEST MODE ONLY</div>
     <h2>{arabic ? 'أضف رصيداً تجريبياً إلى محفظتك' : 'Add test funds to your wallet'}</h2>
@@ -78,7 +86,12 @@ export function WalletFundingPanel({ available, unavailableReason, arabic }: { a
         <input className="input" required type="number" min="1" max="1000" step="0.001" value={amount} disabled={checkout.isPending} onChange={e => changeAmount(e.target.value)} data-testid="input-topup-amount"/><span>KWD</span>
       </div></label>
       <div className="quick-amounts">{['5.000', '10.000', '20.000'].map(n => <button type="button" disabled={checkout.isPending} className={`amount-choice ${amount === n ? 'picked' : ''}`} key={n} onClick={() => changeAmount(n)}>{n}</button>)}</div>
-      <button className="btn btn-primary full-btn" disabled={!available || checkout.isPending || confirmation.isPending} data-testid="button-topup">
+      {validQuote && <p data-testid="demo-conversion">
+        {arabic
+          ? `دفع تجريبي بقيمة USD ${(quoteCents / 100).toFixed(2)} يضيف KWD ${(amountFils / 1000).toFixed(3)} إلى محفظتك التجريبية. سعر تجريبي ثابت: 1 KWD = USD ${(demoUsdCentsPerKwd / 100).toFixed(2)}، وليس سعر صرف حقيقي.`
+          : `Stripe test payment: USD ${(quoteCents / 100).toFixed(2)} → KWD ${(amountFils / 1000).toFixed(3)} in demo wallet funds. Fixed demo rate: 1 KWD = USD ${(demoUsdCentsPerKwd / 100).toFixed(2)} — not a live exchange rate.`}
+      </p>}
+      <button className="btn btn-primary full-btn" disabled={!available || !validQuote || awaitingConfirmation || checkout.isPending || confirmation.isPending} data-testid="button-topup">
         {checkout.isPending ? 'Preparing Stripe test checkout…' : arabic ? 'متابعة إلى الدفع التجريبي' : 'Continue to test checkout'}<ArrowRight size={15}/>
       </button>
       {checkout.isError && <p className="form-error" role="alert">{errorMessage(checkout.error, 'Stripe test checkout could not be opened. No funds were added.')}</p>}

@@ -10,6 +10,7 @@ import {
 import { kuwaitDateKey } from "../lib/geo";
 import { validate } from "../lib/validation";
 import { isStripeReady, stripeUnavailableReason } from "../lib/stripeClient";
+import { DEMO_USD_CENTS_PER_KWD } from "../lib/demoFunding";
 import { confirmTopUp, createTopUpCheckout, TopUpError } from "../lib/walletTopUps";
 import {
   requireAppUser,
@@ -87,6 +88,7 @@ router.get(
       currency: wallet.currency,
       topUpAvailable: isStripeReady(),
       topUpUnavailableReason: isStripeReady() ? null : stripeUnavailableReason(),
+      demoUsdCentsPerKwd: DEMO_USD_CENTS_PER_KWD,
       recentEntries: entries.map((entry) => ({
         id: entry._id.toString(),
         type: entry.type,
