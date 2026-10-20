@@ -25,12 +25,21 @@
 .demo-stage h2 { font-size:20px; letter-spacing:-.04em; margin:6px 0 6px; }
 .demo-stage > p { color:#6c7c87; font-size:12px; line-height:1.65; margin:0 0 18px; max-width:640px; }
 .demo-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:18px; align-items:start; }
-.demo-source { border:1px dashed #b9cbd3; border-radius:12px; background:#f7fafb; min-height:220px; display:grid; place-items:center; overflow:hidden; position:relative; }
+.demo-source { border:1px dashed #b9cbd3; border-radius:12px; background:#f7fafb; min-height:220px; display:grid; place-items:center; overflow:hidden; position:relative; scroll-margin-top:84px; }
 .demo-source img { width:100%; height:auto; display:block; }
 .demo-source-tag { position:absolute; top:10px; inset-inline-start:10px; background:rgba(7,30,37,.78); color:#fff; font:9px var(--app-font-mono); letter-spacing:.1em; padding:5px 8px; border-radius:5px; }
 .demo-choose { display:flex; flex-direction:column; align-items:center; gap:10px; padding:24px; text-align:center; font-size:12px; color:#6f808b; }
 .demo-choose > div { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
 .demo-crop { background:#102b3a; border-radius:12px; height:200px; display:grid; place-items:center; padding:10px; margin-top:12px; }
+.demo-photo-controls { display:grid; gap:12px; margin-top:12px; }
+.demo-zoom-control { display:grid; grid-template-columns:1fr auto; gap:8px 12px; align-items:center; color:#40596a; font-size:11px; font-weight:600; }
+.demo-zoom-control input[type="range"] { grid-column:1 / -1; width:100%; margin:0; accent-color:#078968; }
+.demo-align-controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:13px; border:1px solid #dce6e9; border-radius:11px; background:#f7fafb; }
+.demo-align-controls label { display:grid; min-width:0; gap:7px; color:#40596a; font-size:10px; font-weight:600; }
+.demo-align-controls input[type="range"] { width:100%; min-width:0; margin:0; accent-color:#078968; }
+.demo-align-controls input[type="range"]:disabled { opacity:.45; cursor:not-allowed; }
+.demo-align-controls small { grid-column:1 / -1; color:#6c7c87; font-size:10px; line-height:1.5; }
+.demo-read-plate { justify-self:start; min-width:180px; min-height:42px; }
 .demo-hint { display:flex; gap:8px; align-items:flex-start; font-size:11px; line-height:1.55; color:#5c707c; background:#f1f6f8; border-radius:9px; padding:10px 12px; margin-top:12px; }
 .demo-hint svg { flex:none; color:#078968; margin-top:1px; }
 .demo-hint.warn { background:#fff8e7; color:#74570e; } .demo-hint.warn svg { color:#b07b0b; }
