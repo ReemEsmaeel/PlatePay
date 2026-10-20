@@ -2,3 +2,4 @@
 - [Preview cookie rewriting](preview-cookie-rewriting.md) — this workspace's preview proxy changes SameSite=Lax to None; inspect backend attributes before treating it as an app regression.
 - [Plate OCR validation](plate-ocr-validation.md) — preprocessing can reduce stencil-digit accuracy; validate actual browser crops and preserve both Kuwait number groups.
 - [Stripe runtime compatibility](stripe-runtime-compatibility.md) — migration assets must remain package-relative; follow installed SDK types rather than older Stripe examples.
+- [Wallet currency](wallet-currency.md) — retain KWD and leave unsupported Stripe top-ups disabled; the user rejected a USD demo conversion.
