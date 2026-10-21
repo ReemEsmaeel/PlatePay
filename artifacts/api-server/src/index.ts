@@ -2,7 +2,9 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { connectMongoDB } from "./db/mongo";
 import { initializeStripe } from "./lib/stripeClient";
+import { assertSessionSecret } from "./lib/sessions";
 
+assertSessionSecret();
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {

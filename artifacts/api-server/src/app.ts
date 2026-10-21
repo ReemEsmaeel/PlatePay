@@ -3,12 +3,10 @@ import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { assertSessionSecret } from "./lib/sessions";
 import { requireSameOriginMutation } from "./middlewares/requestSecurity";
 import { stripeWebhookRouter } from "./routes/stripeWebhook";
 
 const app: Express = express();
-assertSessionSecret();
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
 

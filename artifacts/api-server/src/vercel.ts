@@ -3,6 +3,7 @@ import app from "./app";
 import { connectMongoDB } from "./db/mongo";
 import { initializeStripe } from "./lib/stripeClient";
 import { logger } from "./lib/logger";
+import { assertSessionSecret } from "./lib/sessions";
 
 // A request handler, not a listening server. Vercel manages HTTP and instance lifetime.
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
@@ -10,6 +11,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   const pathname = new URL(req.url ?? "/", "https://platepay.invalid").pathname;
   try {
     if (pathname !== "/api/livez" && pathname !== "/api/stripe/webhook") {
+      assertSessionSecret();
       await connectMongoDB();
     }
     // Serverless requests must await initialization; no background retry timers.
@@ -18,10 +20,18 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       await initializeStripe();
     }
   } catch (error) {
-    logger.warn({ errorType: error instanceof Error ? error.name : "UnknownError" }, "Serverless API dependency unavailable");
+    const missingSessionSecret = error instanceof Error && error.message.includes("SESSION_SECRET");
+    logger.warn({
+      dependency: missingSessionSecret ? "session_secret" : "mongodb",
+      errorType: error instanceof Error ? error.name : "UnknownError",
+    }, "Serverless API dependency unavailable");
     res.statusCode = 503;
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ error: "PlatePay database is unavailable. No transaction has been processed." }));
+    res.end(JSON.stringify({
+      error: missingSessionSecret
+        ? "PlatePay server configuration is incomplete. Configure SESSION_SECRET with at least 32 characters."
+        : "PlatePay database is unavailable. No transaction has been processed.",
+    }));
     return;
   }
   return app(req, res);

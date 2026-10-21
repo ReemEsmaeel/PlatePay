@@ -51,6 +51,20 @@ test("serverless liveness works without MongoDB; account routes fail explicitly 
   assert.equal(account.headers.get("cache-control"), "no-store");
 });
 
+test("missing session secret does not crash the Vercel function and blocks stateful routes explicitly", async () => {
+  const originalSecret = process.env.SESSION_SECRET;
+  delete process.env.SESSION_SECRET;
+  try {
+    const alive = await fetch(`${origin}/api/livez`);
+    assert.equal(alive.status, 200);
+    const account = await fetch(`${origin}/api/auth/me`);
+    assert.equal(account.status, 503);
+    assert.match((await account.json()).error, /SESSION_SECRET/);
+  } finally {
+    process.env.SESSION_SECRET = originalSecret;
+  }
+});
+
 test("portable Stripe webhook verifies raw bytes without Replit identity or PostgreSQL", async () => {
   const payload = JSON.stringify({
     id: "evt_deployment_fixture", object: "event", type: "product.created",
