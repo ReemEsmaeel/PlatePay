@@ -15,7 +15,8 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - `pnpm --filter @workspace/api-server run test:wallet` — Stripe test-mode funding validation and amount/ownership matching checks
 - `pnpm --filter @workspace/platepay run test:loading` — page-scoped fetching, retry, and font-loading regression checks
 - `pnpm --filter @workspace/platepay run test:plates` — Kuwait plate grouping, confidence gating, and crop geometry checks
-- `pnpm --filter @workspace/api-server run admin:grant` — after building, register the owner-designated account and complete a profile, then run this operator-only command; it prompts for the account password without echoing it
+- `pnpm --filter @workspace/api-server run admin:grant` — after building, grant the owner-designated account admin access; it prompts for the account password without echoing it
+- `pnpm --filter @workspace/api-server run admin:reset-password` — after building, reset only the owner-designated account password; the new password is entered privately and existing sessions are invalidated
 - Required secret: `MONGODB_URI` — MongoDB Atlas URI for PlatePay application data
 - Optional SOCKS5 egress proxy: `MONGODB_SOCKS5_HOST` and `MONGODB_SOCKS5_PORT`; proxy username/password belong in Replit Secrets. Atlas must allowlist the proxy's fixed egress IP.
 - Required secret: `SESSION_SECRET` — at least 32 random characters; used for hashing opaque session tokens and authentication rate-limit keys

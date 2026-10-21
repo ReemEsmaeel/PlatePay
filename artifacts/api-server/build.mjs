@@ -18,6 +18,7 @@ async function buildAll() {
     entryPoints: {
       index: path.resolve(artifactDir, "src/index.ts"),
       "grant-admin": path.resolve(artifactDir, "src/scripts/grant-admin.ts"),
+      "reset-admin-password": path.resolve(artifactDir, "src/scripts/reset-admin-password.ts"),
     },
     platform: "node",
     bundle: true,
