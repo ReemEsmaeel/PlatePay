@@ -1,10 +1,10 @@
 ---
-name: Wallet currency
-description: User approval for USD test checkout while retaining KWD demo wallet balances.
+name: Wallet top-up mode
+description: User preference for simulated wallet funding and illustrative USD-to-KWD amounts.
 ---
 
-Keep the PlatePay demo wallet in KWD and allow USD Stripe test payments with a clearly disclosed demo conversion.
+Wallet top-ups should simulate a demo payment and credit the KWD wallet through the server. No card is charged and no USD is paid.
 
-**Why:** The user changed their earlier decision to leave funding disabled: “make the payment in usd and desplay it as kwd, it is just a demo.”
+**Why:** The user asked to make wallet top-ups a demo payment that adds wallet credit, after Stripe checkout was unavailable.
 
-**How to apply:** Label the USD payment and KWD wallet credit as a test-only demo, never a live FX quote. Do not switch to real-money payments without separate approval.
+**How to apply:** Any USD amount shown is an illustrative comparison at the fixed demo rate of 1 KWD = USD 3.25, not a payment or live FX quote. Credit only integer KWD fils after the idempotent server-side demo simulation commits.

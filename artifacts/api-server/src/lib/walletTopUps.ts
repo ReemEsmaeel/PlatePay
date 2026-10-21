@@ -14,10 +14,11 @@ export async function createTopUpCheckout(userId: mongoose.Types.ObjectId, amoun
   if (!isStripeReady()) throw new TopUpError(503, stripeUnavailableReason());
   const quote = { checkoutAmountCents: demoUsdCents(amountFils), demoUsdCentsPerKwd: DEMO_USD_CENTS_PER_KWD };
   const intent = await WalletTopUpModel.findOneAndUpdate(
-    { userId, attemptKey }, { $setOnInsert: { userId, attemptKey, amountFils, ...quote } },
+    { userId, attemptKey }, { $setOnInsert: { userId, attemptKey, amountFils, fundingMode: "stripe_test", ...quote } },
     { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
   if (intent.amountFils !== amountFils) throw new TopUpError(409, "This checkout attempt has a different amount. Choose the amount again.");
+  if (intent.fundingMode !== "stripe_test") throw new TopUpError(409, "This top-up attempt belongs to a different payment flow. Choose the amount again.");
   if (intent.creditedAt) throw new TopUpError(409, "This top-up is already completed. Refresh your wallet before starting another.");
   if (!intent.checkoutAmountCents || !intent.demoUsdCentsPerKwd) {
     if (intent.stripeSessionId) throw new TopUpError(409, "This checkout uses an older quote. Choose the amount again to start a new checkout.");
@@ -62,6 +63,7 @@ export async function creditPaidTopUp(checkout: Stripe.Checkout.Session) {
     await session.withTransaction(async () => {
       const intent = await WalletTopUpModel.findById(topUpId).session(session);
       if (!intent) return;
+      if (intent.fundingMode === "demo_simulation") return;
       if (!isMatchingPaidTopUp(checkout, {
         id: intent.id, userId: intent.userId.toString(),
         amountFils: intent.amountFils, stripeSessionId: intent.stripeSessionId ?? null,

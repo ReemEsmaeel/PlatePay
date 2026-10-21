@@ -376,6 +376,38 @@ export interface WalletTopUpStatus {
   status: WalletTopUpStatusStatus;
 }
 
+export type DemoWalletTopUpStatus = typeof DemoWalletTopUpStatus[keyof typeof DemoWalletTopUpStatus];
+
+
+export const DemoWalletTopUpStatus = {
+  completed: 'completed',
+} as const;
+
+export type DemoWalletTopUpCurrency = typeof DemoWalletTopUpCurrency[keyof typeof DemoWalletTopUpCurrency];
+
+
+export const DemoWalletTopUpCurrency = {
+  KWD: 'KWD',
+} as const;
+
+export interface DemoWalletTopUp {
+  status: DemoWalletTopUpStatus;
+  /**
+     * @minimum 1000
+     * @maximum 1000000
+     */
+  amountFils: number;
+  /** @minimum 0 */
+  balanceFils: number;
+  currency: DemoWalletTopUpCurrency;
+  demoOnly: true;
+  /**
+     * Display-only USD equivalent; no USD payment is processed.
+     * @minimum 1
+     */
+  simulatedUsdCents: number;
+}
+
 export interface CheckoutSession {
   sessionId: string;
   checkoutUrl: string;

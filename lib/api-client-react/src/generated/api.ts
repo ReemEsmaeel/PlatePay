@@ -28,9 +28,10 @@ import type {
   AuditLogEntry,
   AuthSession,
   BadRequestResponse,
-  CheckoutSession,
   ConflictResponse,
   CredentialsInput,
+  DemoWalletTopUp,
+  Error,
   HealthStatus,
   ListAdminAccountsParams,
   ListAdminMerchantsParams,
@@ -1829,9 +1830,85 @@ export const getCreateWalletTopUpCheckoutUrl = () => {
 }
 
 /**
- * @summary Create a Stripe test-mode checkout for a wallet top-up
+ * @deprecated
+ * @summary Disabled legacy Stripe test checkout for wallet top-ups
  */
-export const createWalletTopUpCheckout = async (walletTopUpInput: WalletTopUpInput, options?: Parameters<typeof customFetch>[1]): Promise<CheckoutSession> => {
+export const createWalletTopUpCheckout = async ( options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
+
+  return customFetch<unknown>(getCreateWalletTopUpCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCreateWalletTopUpCheckoutMutationKey = () => ['createWalletTopUpCheckout'] as const;
+
+export const getCreateWalletTopUpCheckoutMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWalletTopUpCheckout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createWalletTopUpCheckout>>, TError,void, TContext> => {
+
+const mutationKey = getCreateWalletTopUpCheckoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWalletTopUpCheckout>>, void> = () => {
+
+
+          return  createWalletTopUpCheckout(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateWalletTopUpCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof createWalletTopUpCheckout>>>
+
+    export type CreateWalletTopUpCheckoutMutationError = ErrorType<Error>
+
+
+    /**
+ * @deprecated
+ * @summary Disabled legacy Stripe test checkout for wallet top-ups
+ */
+export const useCreateWalletTopUpCheckout = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWalletTopUpCheckout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createWalletTopUpCheckout>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCreateWalletTopUpCheckoutMutationOptions(options));
+    }
+
+export const getSimulateWalletDemoTopUpUrl = () => {
+
+
+
+
+  return `/api/wallet/topups/demo`
+}
+
+/**
+ * @summary Simulate a demo payment and credit the driver's KWD wallet
+ */
+export const simulateWalletDemoTopUp = async (walletTopUpInput: WalletTopUpInput, options?: Parameters<typeof customFetch>[1]): Promise<DemoWalletTopUp> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -1847,7 +1924,7 @@ export const createWalletTopUpCheckout = async (walletTopUpInput: WalletTopUpInp
     }
     return headers;
   };
-return customFetch<CheckoutSession>(getCreateWalletTopUpCheckoutUrl(),
+return customFetch<DemoWalletTopUp>(getSimulateWalletDemoTopUpUrl(),
   {
     ...options,
     method: 'POST',
@@ -1860,13 +1937,13 @@ return customFetch<CheckoutSession>(getCreateWalletTopUpCheckoutUrl(),
 
 
 
-export const getCreateWalletTopUpCheckoutMutationKey = () => ['createWalletTopUpCheckout'] as const;
+export const getSimulateWalletDemoTopUpMutationKey = () => ['simulateWalletDemoTopUp'] as const;
 
-export const getCreateWalletTopUpCheckoutMutationOptions = <TError = ErrorType<BadRequestResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWalletTopUpCheckout>>, TError,CreateWalletTopUpCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createWalletTopUpCheckout>>, TError,CreateWalletTopUpCheckoutMutationVariables, TContext> => {
+export const getSimulateWalletDemoTopUpMutationOptions = <TError = ErrorType<BadRequestResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof simulateWalletDemoTopUp>>, TError,SimulateWalletDemoTopUpMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof simulateWalletDemoTopUp>>, TError,SimulateWalletDemoTopUpMutationVariables, TContext> => {
 
-const mutationKey = getCreateWalletTopUpCheckoutMutationKey();
+const mutationKey = getSimulateWalletDemoTopUpMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1876,10 +1953,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWalletTopUpCheckout>>, CreateWalletTopUpCheckoutMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof simulateWalletDemoTopUp>>, SimulateWalletDemoTopUpMutationVariables> = (props) => {
           const {data} = props ?? {};
 
-          return  createWalletTopUpCheckout(data,requestOptions)
+          return  simulateWalletDemoTopUp(data,requestOptions)
         }
 
 
@@ -1889,23 +1966,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateWalletTopUpCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof createWalletTopUpCheckout>>>
-    export type CreateWalletTopUpCheckoutMutationBody = BodyType<WalletTopUpInput>
-    export type CreateWalletTopUpCheckoutMutationError = ErrorType<BadRequestResponse>
-    export type CreateWalletTopUpCheckoutMutationVariables = {data: BodyType<WalletTopUpInput>}
+    export type SimulateWalletDemoTopUpMutationResult = NonNullable<Awaited<ReturnType<typeof simulateWalletDemoTopUp>>>
+    export type SimulateWalletDemoTopUpMutationBody = BodyType<WalletTopUpInput>
+    export type SimulateWalletDemoTopUpMutationError = ErrorType<BadRequestResponse>
+    export type SimulateWalletDemoTopUpMutationVariables = {data: BodyType<WalletTopUpInput>}
 
     /**
- * @summary Create a Stripe test-mode checkout for a wallet top-up
+ * @summary Simulate a demo payment and credit the driver's KWD wallet
  */
-export const useCreateWalletTopUpCheckout = <TError = ErrorType<BadRequestResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWalletTopUpCheckout>>, TError,CreateWalletTopUpCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useSimulateWalletDemoTopUp = <TError = ErrorType<BadRequestResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof simulateWalletDemoTopUp>>, TError,SimulateWalletDemoTopUpMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof createWalletTopUpCheckout>>,
+        Awaited<ReturnType<typeof simulateWalletDemoTopUp>>,
         TError,
-        CreateWalletTopUpCheckoutMutationVariables,
+        SimulateWalletDemoTopUpMutationVariables,
         TContext
       > => {
-      return useMutation(getCreateWalletTopUpCheckoutMutationOptions(options));
+      return useMutation(getSimulateWalletDemoTopUpMutationOptions(options));
     }
 
 export const getConfirmWalletTopUpUrl = () => {

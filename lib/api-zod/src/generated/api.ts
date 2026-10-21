@@ -507,21 +507,40 @@ export const GetWalletResponse = zod.object({
 
 
 /**
- * @summary Create a Stripe test-mode checkout for a wallet top-up
+ * @deprecated
+ * @summary Disabled legacy Stripe test checkout for wallet top-ups
  */
-export const createWalletTopUpCheckoutBodyAmountFilsMin = 1000;
-export const createWalletTopUpCheckoutBodyAmountFilsMax = 1000000;
+export const CreateWalletTopUpCheckoutResponse = zod.void()
+
+
+/**
+ * @summary Simulate a demo payment and credit the driver's KWD wallet
+ */
+export const simulateWalletDemoTopUpBodyAmountFilsMin = 1000;
+export const simulateWalletDemoTopUpBodyAmountFilsMax = 1000000;
 
 
 
-export const CreateWalletTopUpCheckoutBody = zod.object({
-  "amountFils": zod.number().int().min(createWalletTopUpCheckoutBodyAmountFilsMin).max(createWalletTopUpCheckoutBodyAmountFilsMax),
+export const SimulateWalletDemoTopUpBody = zod.object({
+  "amountFils": zod.number().int().min(simulateWalletDemoTopUpBodyAmountFilsMin).max(simulateWalletDemoTopUpBodyAmountFilsMax),
   "idempotencyKey": zod.string().uuid()
 })
 
-export const CreateWalletTopUpCheckoutResponse = zod.object({
-  "sessionId": zod.string(),
-  "checkoutUrl": zod.string().url()
+export const simulateWalletDemoTopUpResponseAmountFilsMin = 1000;
+export const simulateWalletDemoTopUpResponseAmountFilsMax = 1000000;
+
+export const simulateWalletDemoTopUpResponseBalanceFilsMin = 0;
+
+
+
+
+export const SimulateWalletDemoTopUpResponse = zod.object({
+  "status": zod.enum(['completed']),
+  "amountFils": zod.number().int().min(simulateWalletDemoTopUpResponseAmountFilsMin).max(simulateWalletDemoTopUpResponseAmountFilsMax),
+  "balanceFils": zod.number().int().min(simulateWalletDemoTopUpResponseBalanceFilsMin),
+  "currency": zod.enum(['KWD']),
+  "demoOnly": zod.literal(true),
+  "simulatedUsdCents": zod.number().int().min(1).describe('Display-only USD equivalent; no USD payment is processed.')
 })
 
 

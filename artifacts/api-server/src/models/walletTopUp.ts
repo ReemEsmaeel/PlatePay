@@ -5,6 +5,7 @@ const schema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: "PlatePayUser", required: true },
   attemptKey: { type: String, required: true },
   amountFils: { type: Number, min: 1000, max: 1_000_000, required: true },
+  fundingMode: { type: String, enum: ["stripe_test", "demo_simulation"], default: "stripe_test", required: true },
   checkoutAmountCents: { type: Number, min: 1 },
   demoUsdCentsPerKwd: { type: Number, min: 1 },
   stripeSessionId: { type: String, default: null },

@@ -63,6 +63,9 @@ export default defineConfig({
   optimizeDeps: {
     // Linked workspace packages otherwise reach the browser as a chain of
     // unbundled source modules, including development source maps.
+    // Regenerated API hooks can change package exports without changing its
+    // version; force Vite to refresh the linked package's optimized entry.
+    force: true,
     include: ['@workspace/api-client-react'],
   },
   build: {

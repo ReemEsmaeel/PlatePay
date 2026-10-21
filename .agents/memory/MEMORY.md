@@ -2,5 +2,5 @@
 - [Preview cookie rewriting](preview-cookie-rewriting.md) — this workspace's preview proxy changes SameSite=Lax to None; inspect backend attributes before treating it as an app regression.
 - [Plate OCR validation](plate-ocr-validation.md) — preprocessing can reduce stencil-digit accuracy; validate actual browser crops and preserve both Kuwait number groups.
 - [Stripe runtime compatibility](stripe-runtime-compatibility.md) — migration assets must remain package-relative; follow installed SDK types rather than older Stripe examples.
-- [Wallet currency](wallet-currency.md) — user approved USD test payments with disclosed demo conversion; keep the demo wallet in KWD.
+- [Wallet top-up mode](wallet-currency.md) — simulate top-ups with server-side KWD credit; any USD amount is illustrative only.
 - [Mongoose multi-document sessions](mongoose-session-batches.md) — pass ordered writes to array-based `Model.create()` inside Mongo transactions.

@@ -1,17 +1,18 @@
 import { Router, type IRouter } from "express";
 import mongoose from "mongoose";
 import {
-  CreateWalletTopUpCheckoutBody,
   ConfirmWalletTopUpBody,
   GetTransactionReceiptParams,
   ListTransactionsQueryParams,
+  SimulateWalletDemoTopUpBody,
+  SimulateWalletDemoTopUpResponse,
   UpdateSpendingLimitsBody,
 } from "@workspace/api-zod";
 import { kuwaitDateKey } from "../lib/geo";
 import { validate } from "../lib/validation";
-import { isStripeReady, stripeUnavailableReason } from "../lib/stripeClient";
 import { DEMO_USD_CENTS_PER_KWD } from "../lib/demoFunding";
-import { confirmTopUp, createTopUpCheckout, TopUpError } from "../lib/walletTopUps";
+import { DemoWalletTopUpError, simulateDemoWalletTopUp } from "../lib/demoWalletTopUps";
+import { confirmTopUp, TopUpError } from "../lib/walletTopUps";
 import {
   requireAppUser,
   requireRole,
@@ -86,8 +87,8 @@ router.get(
     res.json({
       balanceFils: wallet.balanceFils,
       currency: wallet.currency,
-      topUpAvailable: !user.demoScenarioId && isStripeReady(),
-      topUpUnavailableReason: user.demoScenarioId ? "Guided demo accounts use simulated starter funds. Stripe checkout is disabled." : isStripeReady() ? null : stripeUnavailableReason(),
+      topUpAvailable: true,
+      topUpUnavailableReason: null,
       demoUsdCentsPerKwd: DEMO_USD_CENTS_PER_KWD,
       recentEntries: entries.map((entry) => ({
         id: entry._id.toString(),
@@ -106,23 +107,28 @@ router.post(
   "/wallet/topups/checkout",
   requireAppUser,
   requireRole("driver"),
-  async (req, res) => {
-    if ((req as PlatePayRequest).platepayUser!.demoScenarioId) {
-      res.status(403).json({ error: "Stripe checkout is disabled for guided demo accounts." }); return;
-    }
-    const body = validate(CreateWalletTopUpCheckoutBody, req.body, res);
-    if (!body) return;
-    try {
-      const checkout = await createTopUpCheckout((req as PlatePayRequest).platepayUser!._id, body.amountFils, body.idempotencyKey);
-      res.status(201).json(checkout);
-    } catch (error) {
-      req.log.warn({ errorType: error instanceof Error ? error.name : "UnknownError" }, "Stripe checkout could not be created");
-      res.status(error instanceof TopUpError ? error.status : 503).json({
-        error: error instanceof TopUpError ? error.message : "Stripe test checkout is temporarily unavailable. No funds were added. Try again shortly.",
-      });
-    }
+  async (_req, res) => {
+    res.status(410).json({ error: "Stripe wallet checkout is disabled. Use the clearly labeled demo top-up instead." });
   },
 );
+
+router.post("/wallet/topups/demo", requireAppUser, requireRole("driver"), async (req, res) => {
+  const body = validate(SimulateWalletDemoTopUpBody, req.body, res);
+  if (!body) return;
+  try {
+    const result = await simulateDemoWalletTopUp(
+      (req as PlatePayRequest).platepayUser!._id,
+      body.amountFils,
+      body.idempotencyKey,
+    );
+    res.json(SimulateWalletDemoTopUpResponse.parse(result));
+  } catch (error) {
+    req.log.warn({ errorType: error instanceof Error ? error.name : "UnknownError" }, "Demo wallet top-up could not be completed");
+    res.status(error instanceof DemoWalletTopUpError ? error.status : 503).json({
+      error: error instanceof DemoWalletTopUpError ? error.message : "Demo top-up could not be confirmed. Refresh your wallet before retrying.",
+    });
+  }
+});
 
 router.post("/wallet/topups/confirm", requireAppUser, requireRole("driver"), async (req, res) => {
   if ((req as PlatePayRequest).platepayUser!.demoScenarioId) {

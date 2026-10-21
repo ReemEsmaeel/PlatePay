@@ -385,8 +385,21 @@ paths:
   /wallet/topups/checkout:
     post:
       operationId: createWalletTopUpCheckout
+      deprecated: true
       tags: [wallet]
-      summary: Create a Stripe test-mode checkout for a wallet top-up
+      summary: Disabled legacy Stripe test checkout for wallet top-ups
+      responses:
+        "410":
+          description: Stripe wallet checkout is disabled; use the simulated demo top-up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /wallet/topups/demo:
+    post:
+      operationId: simulateWalletDemoTopUp
+      tags: [wallet]
+      summary: Simulate a demo payment and credit the driver's KWD wallet
       requestBody:
         required: true
         content:
@@ -394,12 +407,12 @@ paths:
             schema:
               $ref: "#/components/schemas/WalletTopUpInput"
       responses:
-        "201":
-          description: Checkout session created
+        "200":
+          description: Simulated demo payment credited to the wallet
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CheckoutSession"
+                $ref: "#/components/schemas/DemoWalletTopUp"
         "400":
           $ref: "#/components/responses/BadRequest"
   /wallet/topups/confirm:
@@ -1036,6 +1049,30 @@ components:
           type: string
           enum: [pending, completed, expired]
       required: [status]
+    DemoWalletTopUp:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [completed]
+        amountFils:
+          type: integer
+          minimum: 1000
+          maximum: 1000000
+        balanceFils:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          enum: [KWD]
+        demoOnly:
+          type: boolean
+          enum: [true]
+        simulatedUsdCents:
+          type: integer
+          minimum: 1
+          description: Display-only USD equivalent; no USD payment is processed.
+      required: [status, amountFils, balanceFils, currency, demoOnly, simulatedUsdCents]
     CheckoutSession:
       type: object
       properties:

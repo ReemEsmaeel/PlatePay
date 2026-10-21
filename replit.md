@@ -1,6 +1,6 @@
 # PlatePay
 
-PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and administrators, with explicit driver approval and test-mode payments.
+PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and administrators, with explicit driver approval and simulated wallet top-ups.
 
 ## Run & Operate
 
@@ -12,7 +12,7 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - `pnpm run test:vercel` — after building, check the deployment bundle, raw Stripe signatures and fail-closed serverless behavior
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/api-server run test:auth` — authentication security regression checks
-- `pnpm --filter @workspace/api-server run test:wallet` — Stripe test-mode funding validation and amount/ownership matching checks
+- `pnpm --filter @workspace/api-server run test:wallet` — wallet funding validation, demo top-up crediting, and Stripe test-session checks
 - `pnpm --filter @workspace/platepay run test:loading` — page-scoped fetching, retry, and font-loading regression checks
 - `pnpm --filter @workspace/platepay run test:plates` — Kuwait plate grouping, confidence gating, and crop geometry checks
 - `pnpm --filter @workspace/api-server run admin:grant` — after building, grant the owner-designated account admin access; it prompts for the account password without echoing it
@@ -20,7 +20,7 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 - Required secret: `MONGODB_URI` — MongoDB Atlas URI for PlatePay application data
 - Optional SOCKS5 egress proxy: `MONGODB_SOCKS5_HOST` and `MONGODB_SOCKS5_PORT`; proxy username/password belong in Replit Secrets. Atlas must allowlist the proxy's fixed egress IP.
 - Required secret: `SESSION_SECRET` — at least 32 random characters; used for hashing opaque session tokens and authentication rate-limit keys
-- The user has resumed Stripe test-checkout setup and connected Stripe. Keep PlatePay application data in MongoDB; the managed Stripe integration uses a separate PostgreSQL synchronization store, not a migration of application records. Checkout stays disabled until synchronization initializes successfully.
+- New wallet top-ups use a server-side demo simulation and do not open Stripe Checkout. Keep PlatePay application data in MongoDB; Stripe is not required to add demo wallet credit. The legacy Stripe test-session confirmation remains only for already-created test checkouts.
 
 ## Stack
 
@@ -57,7 +57,7 @@ PlatePay is a bilingual vehicle-payment demo for drivers, merchants, and adminis
 
 ## Product
 
-The expanded MVP includes driver, merchant, and admin areas; vehicle registration and plate recognition; service locations and geofence checks; driver-approved payment requests; a wallet with Stripe test-mode top-ups and spending limits; transaction histories, receipts, and admin audit views.
+The expanded MVP includes driver, merchant, and admin areas; vehicle registration and plate recognition; service locations and geofence checks; driver-approved payment requests; a wallet with simulated demo top-ups and spending limits; transaction histories, receipts, and admin audit views.
 
 ## User preferences
 
@@ -71,10 +71,10 @@ The expanded MVP includes driver, merchant, and admin areas; vehicle registratio
 - Never expose secret values in source code, logs, or chat. Use Replit Secrets; commit `.env.example` only.
 - Validate ownership, role, available funds, daily/per-transaction limits, geofence, and pending status on the server before approving a payment.
 - Payment approval must be idempotent; retries must not debit a wallet twice.
-- Stripe wallet funding is test-only. Never credit a checkout redirect or browser-provided amount: verify a paid, completed test session against its owned MongoDB funding intent, then atomically credit its wallet, ledger, transaction, and audit entry once.
-- The user approved USD test checkout with KWD demo wallet balances. Use the disclosed fixed demo rate of 1 KWD = USD 3.25, not a live FX quote. Persist the server-owned quote and verify the paid USD cents before crediting the intended KWD fils. Never enable live payments or change the wallet denomination as part of this demo.
+- Wallet top-ups are simulated demo payments: no card is charged and no USD is paid. The server creates an idempotent funding intent, then transactionally credits the KWD wallet, ledger, transaction, and audit record exactly once.
+- The USD display is illustrative only. Show the fixed demo comparison of 1 KWD = USD 3.25, never a live FX quote; credit the requested KWD fils only after the server-side demo simulation completes.
 - Stripe webhooks require raw request bytes and provider signature verification before fulfillment. They bypass the browser-only CSRF header check, not authentication-by-signature.
-- For Replit-managed PostgreSQL, initialize Stripe schema in development; Publish applies the schema to production. Do not add production startup DDL. On Vercel, use direct test-only Stripe credentials and a manually configured signed webhook, without Replit identity or PostgreSQL synchronization. See `VERCEL.md`; never migrate MongoDB application records.
+- New wallet top-ups do not depend on Stripe credentials, PostgreSQL synchronization, or webhooks. Keep raw-body signature verification for any legacy Stripe test-session webhooks; see `VERCEL.md` and never migrate MongoDB application records.
 - Database-backed routes become ready only after required unique indexes are verified, including in production; connection success alone is not sufficient for safe wallet operations.
 - Keep all Stripe activity in test mode until the user explicitly requests a production change.
 

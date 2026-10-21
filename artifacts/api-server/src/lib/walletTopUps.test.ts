@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { isMatchingPaidTopUp } from "./topUpValidation";
-import { CreateWalletTopUpCheckoutBody, ConfirmWalletTopUpBody } from "@workspace/api-zod";
+import {
+  ConfirmWalletTopUpBody,
+  SimulateWalletDemoTopUpBody,
+  SimulateWalletDemoTopUpResponse,
+} from "@workspace/api-zod";
 import { demoUsdCents } from "./demoFunding";
 
 const intent = {
@@ -48,15 +52,34 @@ test("demo conversion rounds integer fils to USD cents and preserves KWD credit"
   }
 });
 
-test("checkout inputs require bounded integer fils and an idempotency UUID", () => {
+test("wallet top-up inputs require bounded integer fils and an idempotency UUID", () => {
   const idempotencyKey = "d1db4dc9-7dbb-4c12-a037-8207fc280105";
   for (const amountFils of [1000, 20_000, 1_000_000]) {
-    assert.equal(CreateWalletTopUpCheckoutBody.safeParse({ amountFils, idempotencyKey }).success, true);
+    assert.equal(SimulateWalletDemoTopUpBody.safeParse({ amountFils, idempotencyKey }).success, true);
   }
   for (const amountFils of [0, 999, 1000.5, 1_000_001, "20000"]) {
-    assert.equal(CreateWalletTopUpCheckoutBody.safeParse({ amountFils, idempotencyKey }).success, false);
+    assert.equal(SimulateWalletDemoTopUpBody.safeParse({ amountFils, idempotencyKey }).success, false);
   }
-  assert.equal(CreateWalletTopUpCheckoutBody.safeParse({ amountFils: 20_000 }).success, false);
+  assert.equal(SimulateWalletDemoTopUpBody.safeParse({ amountFils: 20_000 }).success, false);
   assert.equal(ConfirmWalletTopUpBody.safeParse({ sessionId: "cs_test_example" }).success, true);
   assert.equal(ConfirmWalletTopUpBody.safeParse({ sessionId: "cs_live_example" }).success, false);
+});
+
+test("demo top-up response identifies the KWD credit as simulated", () => {
+  assert.equal(SimulateWalletDemoTopUpResponse.safeParse({
+    status: "completed",
+    amountFils: 5000,
+    balanceFils: 25_000,
+    currency: "KWD",
+    demoOnly: true,
+    simulatedUsdCents: 1625,
+  }).success, true);
+  assert.equal(SimulateWalletDemoTopUpResponse.safeParse({
+    status: "completed",
+    amountFils: 5000,
+    balanceFils: 25_000,
+    currency: "KWD",
+    demoOnly: false,
+    simulatedUsdCents: 1625,
+  }).success, false);
 });
