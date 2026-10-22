@@ -1,0 +1,29 @@
+kind = "video"
+videoAspectRatio = "16:9"
+previewPath = "/platepay-guide-video/"
+title = "PlatePay Walkthrough"
+description = "A short animated walkthrough showing how drivers and merchants use PlatePay’s guided demo to recognize a vehicle plate, send and approve a payment request, and see the payment in both histories."
+version = "1.0.0"
+id = "artifacts/platepay-guide-video"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/platepay-guide-video/" ]
+localPort = 20015
+
+[services.development]
+run = "pnpm --filter @workspace/platepay-guide-video run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/platepay-guide-video", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/platepay-guide-video/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20015"
+BASE_PATH = "/platepay-guide-video/"
