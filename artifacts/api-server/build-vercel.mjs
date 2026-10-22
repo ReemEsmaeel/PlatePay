@@ -8,18 +8,24 @@ const apiDir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(apiDir, "../..");
 const output = path.join(root, ".vercel/output");
 const functionDir = path.join(output, "functions/api.func");
-const run = args => execFileSync("pnpm", args, {
+const run = (args, basePath = "/") => execFileSync("pnpm", args, {
   cwd: root, stdio: "inherit",
-  env: { ...process.env, NODE_ENV: "production", PORT: "19380", BASE_PATH: "/" },
+  env: { ...process.env, NODE_ENV: "production", PORT: "19380", BASE_PATH: basePath },
 });
 
 run(["run", "typecheck:libs"]);
 run(["--filter", "@workspace/api-server", "run", "typecheck"]);
 run(["--filter", "@workspace/platepay", "run", "typecheck"]);
 run(["--filter", "@workspace/platepay", "run", "build"]);
+run(["--filter", "@workspace/platepay-guide-video", "run", "build"], "/walkthrough/");
 await rm(output, { recursive: true, force: true });
 await mkdir(functionDir, { recursive: true });
 await cp(path.join(root, "artifacts/platepay/dist/public"), path.join(output, "static"), { recursive: true });
+await cp(
+  path.join(root, "artifacts/platepay-guide-video/dist/public"),
+  path.join(output, "static/walkthrough"),
+  { recursive: true },
+);
 
 await build({
   absWorkingDir: apiDir,
@@ -46,4 +52,4 @@ await writeFile(path.join(output, "config.json"), JSON.stringify({
     { src: "/.*", dest: "/index.html", headers: { "Cache-Control": "no-cache" } },
   ],
 }, null, 2));
-console.log("Vercel Build Output ready: static frontend and one Node.js API function.");
+console.log("Vercel Build Output ready: PlatePay frontend, public /walkthrough/ video, and one Node.js API function.");

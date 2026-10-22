@@ -40,6 +40,12 @@ test("build contains static SPA, immutable assets and a raw Node API function", 
   assert.equal(fn.shouldAddHelpers, false, "Stripe signatures require the original raw request bytes");
   assert.match(await readFile(new URL("static/index.html", output), "utf8"), /id="root"/);
   assert.ok((await readdir(new URL("static/assets/", output))).some(name => name.endsWith(".js")));
+  const walkthrough = await readFile(new URL("static/walkthrough/index.html", output), "utf8");
+  assert.match(walkthrough, /\/walkthrough\/assets\//);
+  assert.doesNotMatch(walkthrough, /\/platepay-guide-video\//);
+  assert.ok((await readdir(new URL("static/walkthrough/assets/", output))).some(name => name.endsWith(".js")));
+  assert.ok((await readdir(new URL("static/walkthrough/images/", output))).some(name => /\.(png|jpe?g|webp)$/i.test(name)));
+  assert.ok((await readdir(new URL("static/walkthrough/audio/", output))).some(name => /\.mp3$/i.test(name)));
 });
 
 test("serverless liveness works without MongoDB; account routes fail explicitly without it", async () => {

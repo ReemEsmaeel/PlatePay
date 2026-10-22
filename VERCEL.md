@@ -22,6 +22,11 @@ shared types, API and frontend, then produces `.vercel/output`: static frontend
 assets and one Node.js function for every `/api/*` route. Direct links such as
 `/driver/wallet` load the SPA; API requests are never rewritten to HTML.
 
+The same build also publishes the animated PlatePay walkthrough as a public,
+unauthenticated static page at `/walkthrough/`. After redeploying this build, share
+`https://platepaykw.vercel.app/walkthrough/` (or use your currently assigned
+production domain with the same path).
+
 ## 2. Configure Vercel environment variables
 
 Set these in **Vercel → Project Settings → Environment Variables**. Never commit
@@ -100,6 +105,7 @@ test payment, then credit exactly KWD 20.000 once payment is verified.
 ## 5. Verify after deployment
 
 - `/` loads, and refreshing `/driver/wallet` doesn't produce a 404.
+- `/walkthrough/` loads the PlatePay video and its local image/audio assets.
 - `/api/livez` returns 200; `/api/healthz` returns 200 once MongoDB/indexes are ready.
 - Registration/sign-in work with secure cookies on the Vercel domain.
 - A verified merchant's request reaches its registered driver; use separate
