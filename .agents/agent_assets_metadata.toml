@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "gNY-pULKVemStWzadbE6-"
+uri = "file://artifacts/platepay-guide-video/public/audio/composite_audio.mp3"
+type = "audio"
+title = "PlatePay narrated soundtrack"
+description = "28-second PlatePay walkthrough audio with the English voiceover mixed with the existing background music."
+logical_id = "25790c60-0c34-4b67-ac89-0792f92b8b6f"
+content_hash = "sha256:4e76f01fa73d3433fc708801b5e6a0d91a9307688661bac35f3ed5a7e6e090b3"
+size = 673376
+mtime_ms = 1792787473561
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:6e84c8cb-9591-40de-ae40-5c3c3b1cf13f/25790c60-0c34-4b67-ac89-0792f92b8b6f/7514f2eb-b89d-4432-9e7c-08a26fbfba37"
+storage_version_token = "1792787716837363"
+content_type = "audio/mpeg"

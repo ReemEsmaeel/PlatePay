@@ -34,7 +34,7 @@
 
 **Assets and technique:** CSS plate slab and legible typography, SVG route trace, masked phrase reveal, scene-local declarative Framer Motion. No external logo asset exists; use the product name as plain text rather than fabricating a mark.
 
-**Sound intent:** Instrumental bed begins with a restrained percussive pulse; first short accent at the “PLATE.” snap. No VO or SFX; the visual copy carries the walkthrough.
+**Sound intent:** Existing instrumental bed begins with a restrained percussive pulse; first short accent at the “PLATE.” snap. VO: “One plate links the merchant and the driver.” at 00.35–02.71.
 
 ### Shot 02 / 04.50–10.00 / 5.50s — “THE MERCHANT STARTS.”
 **Purpose:** Show the merchant selecting a car photo and checking the recognized plate rather than implying automatic charging.
@@ -49,7 +49,7 @@
 
 **Assets and technique:** A generated synthetic rear-car photo at `public/images/merchant-car.jpg`; no legible branding or readable vehicle plate in the photo itself. UI and plate details are designed as graphic overlays. SVG scanning corners; camera-scale transition.
 
-**Sound intent:** Bed adds soft ticking percussion; recognition reveal lands at a generated musical accent. No VO or SFX.
+**Sound intent:** Bed adds soft ticking percussion; recognition reveal lands at a generated musical accent. VO: “The merchant uploads a vehicle photo, then reviews the plate and request.” at 04.78–09.36.
 
 ### Shot 03 / 10.00–15.00 / 5.00s — “A REQUEST. NOT A CHARGE.”
 **Purpose:** Make the driver-facing decision clear and emphasize no payment occurs without explicit approval.
@@ -64,7 +64,7 @@
 
 **Assets and technique:** Type and card as HTML/SVG, CSS contour path, traced rule, radial mask, transform/opacity motion.
 
-**Sound intent:** Percussion thins; one bright accent underscores the amount. No VO or SFX.
+**Sound intent:** Percussion thins; one bright accent underscores the amount. VO: “The driver reviews the request. Recognition never approves a payment.” at 10.32–14.52.
 
 ### Shot 04 / 15.00–20.00 / 5.00s — “APPROVED BY THE DRIVER.”
 **Purpose:** Show explicit driver consent and the immediate wallet result.
@@ -79,7 +79,7 @@
 
 **Assets and technique:** Graphic UI artwork, SVG check path, animated digit columns, ring aperture, split composition.
 
-**Sound intent:** Strong measured accent at the check stamp; bed resolves into warmer chord layer for the records. No VO or SFX.
+**Sound intent:** Strong measured accent at the check stamp; bed resolves into warmer chord layer for the records. VO: “The driver approves the request. Only then does the wallet update.” at 15.30–19.18.
 
 ### Shot 05 / 20.00–28.00 / 8.00s — “ONE PAYMENT. TWO HISTORIES.”
 **Purpose:** Complete the story by proving the same approved payment appears in both merchant and driver records.
@@ -94,7 +94,7 @@
 
 **Assets and technique:** CSS ledger panels and receipt fold, SVG line trace, wordmark as plain text (no fabricated logo), matched loop geometry.
 
-**Sound intent:** Musical resolve at 24s logo lockup; controlled finish with no extra flourish. No VO or SFX. Loop handoff returns to the opening pulse.
+**Sound intent:** Musical resolve at 24s logo lockup; controlled finish with no extra flourish. VO: “That same payment appears in both histories.” at 20.35–23.03; “PlatePay. Your plate. Your call.” at 24.10–26.85. Loop handoff returns to the opening pulse.
 
 ## Pre-code variety review
 The consecutive shots vary material: graphic plate object → generated photo plus merchant rail → centered driver card with contour path → macro approval stamp → split ledger/cream lockup. Scale and composition change at each boundary. Each phase has a visible action after its first reveal, and each exit carries the plate, ring, or rule as a physical transition object. Core copy stays large and sound-independent; the merchant-review and driver-consent distinction is explicit.
@@ -102,6 +102,8 @@ The consecutive shots vary material: graphic plate object → generated photo pl
 ## Audio spec
 - Runtime: 28 s (SCENE_DURATIONS total).
 - Music: cinematic minimal electronic fintech instrumental, 104 BPM, warm synthesized piano-like chords, muted pulse, soft bell accents and brushed-feel percussion; patient opening with firm accents at 4.5s, 10s, 15s, 20s, and resolved lift at 24s. No vocals.
-- Voiceover/SFX: None; all workflow description is carried by the on-screen copy.
-- Playback file: bg_music.mp3 (locally synthesized fallback; paid music-generation callback was unavailable in this run).
+- Voiceover (requested; English, conversational, generated with FFmpeg's local libflite `slt` voice): 00.35–02.71 “One plate links the merchant and the driver.”; 04.78–09.36 “The merchant uploads a vehicle photo, then reviews the plate and request.”; 10.32–14.52 “The driver reviews the request. Recognition never approves a payment.”; 15.30–19.18 “The driver approves the request. Only then does the wallet update.”; 20.35–23.03 “That same payment appears in both histories.”; 24.10–26.85 “PlatePay. Your plate. Your call.”
+- Voice files: `public/audio/vo_01_hook.wav`, `vo_02_merchant.wav`, `vo_03_review.wav`, `vo_04_approval.wav`, `vo_05_history.wav`, and `vo_06_lockup.wav` (44.1 kHz stereo PCM, placed at their listed start times).
+- Mix: Existing music ducked to 0.24; each narration clip at 1.0; six aligned stereo delays mixed without normalization and passed through a 0.96 peak limiter. The output is trimmed to the 28-second scene runtime.
+- Playback file: `public/audio/composite_audio.mp3`; `VideoTemplate` uses this single composite for synchronized preview and recording/export audio parity. The original `bg_music.mp3` remains unchanged.
 - Beat alignment: the track's measured RMS onsets include 4.50s, 10.00s, 15.00s, 20.00s and 24.00s; the scripted cuts align with these accents.
